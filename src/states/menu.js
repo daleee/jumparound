@@ -1,10 +1,8 @@
-var menuState = function () {};
-
-menuState.prototype.preload = function () {
+module.exports = {
+    preload: function () {
+        
+    },
+    create: function () {
+        console.log('create: in menu state');
+    }
 };
-
-menuState.prototype.create = function () {
-    console.log('MENU: In menu state.');
-};
-
-module.exports = menuState;

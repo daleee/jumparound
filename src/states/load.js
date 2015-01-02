@@ -1,11 +1,9 @@
-var loadState = function () {};
-
-loadState.prototype.preload = function () {
+module.exports = {
+    preload: function () {
+        
+    },
+    create: function () {
+        console.log('create: in load state');
+        game.state.start('menu');
+    }
 };
-
-loadState.prototype.create = function () {
-    console.log('LOAD: In load state.');
-    game.state.start('menu');
-};
-
-module.exports = loadState;
