@@ -1,6 +1,7 @@
 module.exports = {
     // state variables
     facing: 'right',
+    autoJumpEnabled: false,
     // methods
     preload: function () {
         game.time.advancedTiming = true; // TODO: put behind debug flag
@@ -47,6 +48,12 @@ module.exports = {
         leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
         rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
         jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        autoJumpToggleKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
+        // TODO: put this behind a dev flag
+        autoJumpToggleKey.onDown.add(function (key) {
+            this.autoJumpEnabled = !this.autoJumpEnabled;
+        }, this);
+
     },
     update: function () {
         // check for world collision
@@ -55,7 +62,6 @@ module.exports = {
         // reset movement
         player.body.velocity.x = 0;
 
-        // TODO: check for input
         if (leftKey.isDown) {
             player.body.velocity.x = -150;
 
@@ -87,7 +93,8 @@ module.exports = {
             }
         }
 
-        if (jumpKey.isDown && player.body.onFloor()) {
+        if (jumpKey.isDown && player.body.onFloor() ||
+            this.autoJumpEnabled && player.body.onFloor()) {
             /// number achieved via playtesting
             player.body.velocity.y = -215;
         }
