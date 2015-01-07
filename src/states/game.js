@@ -2,9 +2,9 @@ module.exports = {
     // state variables
     facing: 'right',
     autoJumpEnabled: false,
+    pauseText: null, // TODO: handle this better...
     // methods
     preload: function () {
-        game.time.advancedTiming = true; // TODO: put behind debug flag
         game.load.tilemap('map', '../../assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('Tileset', '../../assets/images/spritesheet.png');
         game.load.image('background', '../../assets/images/bg.png');
@@ -40,7 +40,11 @@ module.exports = {
         game.physics.enable(player);
         game.physics.arcade.gravity.y = 300;
         player.body.collideWorldBounds = true;
+        player.body.gravity.y = 1250;
         player.body.maxVelocity.y = 500;
+
+        game.time.advancedTiming = true; // TODO: put behind debug flag
+        // this populates game.time.fps variables
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -48,11 +52,30 @@ module.exports = {
         leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
         rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
         jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        pauseKey = game.input.keyboard.addKey(Phaser.Keyboard.P);
         autoJumpToggleKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
+        // callbacks for input that isn't necessary for movement
+        // the 'onDown' signal is only triggered once per key down
         // TODO: put this behind a dev flag
         autoJumpToggleKey.onDown.add(function (key) {
             this.autoJumpEnabled = !this.autoJumpEnabled;
         }, this);
+        pauseKey.onDown.add(function (key) {
+            if (game.paused) {
+                this.pauseText.destroy();
+                game.paused = false;
+            }
+            else {
+                game.paused = true;
+                this.pauseText = game.add.text(game.world.centerX,
+                                               game.world.centerY,
+                                               'PAUSED',
+                                               { font: "65px Arial",
+                                                 fill: '#000',
+                                                 align: 'center'});
+            }
+        }, this);
+
 
     },
     update: function () {
@@ -96,10 +119,11 @@ module.exports = {
         if (jumpKey.isDown && player.body.onFloor() ||
             this.autoJumpEnabled && player.body.onFloor()) {
             /// number achieved via playtesting
-            player.body.velocity.y = -215;
+            player.body.velocity.y = -player.body.maxVelocity.y;
         }
     },
     render: function () {
-        game.debug.text(game.time.fps || '--', 32, 32);
+        game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
+        game.debug.bodyInfo(player, 16, 24);
     }
 };
