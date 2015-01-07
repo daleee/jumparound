@@ -1,6 +1,11 @@
 module.exports = {
     // state variables
+    // TODO: put this in a separate sprite class
     facing: 'right',
+    maxVelocity: 500,
+    groundSpeed: 150,
+    speedMultiplier: 2,
+    speedEnabled: false,
     autoJumpEnabled: false,
     pauseText: null, // TODO: handle this better...
     // methods
@@ -41,7 +46,8 @@ module.exports = {
         game.physics.arcade.gravity.y = 300;
         player.body.collideWorldBounds = true;
         player.body.gravity.y = 1250;
-        player.body.maxVelocity.y = 500;
+        player.body.maxVelocity.y = this.maxVelocity;
+        player.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
 
         game.time.advancedTiming = true; // TODO: put behind debug flag
         // this populates game.time.fps variables
@@ -53,6 +59,7 @@ module.exports = {
         rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
         jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
         pauseKey = game.input.keyboard.addKey(Phaser.Keyboard.P);
+        speedKey = game.input.keyboard.addKey(Phaser.Keyboard.Z);
         autoJumpToggleKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
         // callbacks for input that isn't necessary for movement
         // the 'onDown' signal is only triggered once per key down
@@ -85,8 +92,9 @@ module.exports = {
         // reset movement
         player.body.velocity.x = 0;
 
+
         if (leftKey.isDown) {
-            player.body.velocity.x = -150;
+            player.body.velocity.x = -this.groundSpeed;
 
             if (this.facing != 'left') {
                 player.animations.play('left');
@@ -95,7 +103,7 @@ module.exports = {
             }
         }
         else if (rightKey.isDown) {
-            player.body.velocity.x = 150;
+            player.body.velocity.x = this.groundSpeed;
 
             // TODO: get animation frames for 'right'
             if (this.facing != 'right') {
@@ -116,6 +124,16 @@ module.exports = {
             }
         }
 
+        if (speedKey.isDown) {
+            this.speedEnabled = true;
+            player.body.velocity.x *= this.speedMultiplier;
+        }
+        else {
+            if (this.speedEnabled) {
+                this.speedEnabled = false;
+            }
+        }
+
         if (jumpKey.isDown && player.body.onFloor() ||
             this.autoJumpEnabled && player.body.onFloor()) {
             /// number achieved via playtesting
@@ -123,7 +141,10 @@ module.exports = {
         }
     },
     render: function () {
+        // DEBUG STUFF - turn off for production
         game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
+        game.debug.body(player); // draw AABB box for player
         game.debug.bodyInfo(player, 16, 24);
+        // END DEBUG STUFF
     }
 };
