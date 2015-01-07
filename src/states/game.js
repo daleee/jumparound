@@ -19,7 +19,6 @@ module.exports = {
     create: function () {
         console.log('create: in game state');
 
-        game.stage.backgroundColor = '#6380A1';
         game.add.sprite(0, 0, 'background');
 
         // add tilemap & associated tilesets
@@ -38,12 +37,12 @@ module.exports = {
         player.animations.add('idle', [19], 10, false);
         player.animations.add('left', [26, 27, 28, 29], 10, true);
         player.animations.play('idle');
-        player.anchor.setTo(0.5, 0.5);
 
         // initialize world physics
         game.physics.startSystem(Phaser.Physics.ARCADE);
         game.physics.enable(player);
         game.physics.arcade.gravity.y = 300;
+        player.anchor.setTo(0.5, 0.5);
         player.body.collideWorldBounds = true;
         player.body.gravity.y = 1250;
         player.body.maxVelocity.y = this.maxVelocity;
@@ -61,6 +60,8 @@ module.exports = {
         pauseKey = game.input.keyboard.addKey(Phaser.Keyboard.P);
         speedKey = game.input.keyboard.addKey(Phaser.Keyboard.Z);
         autoJumpToggleKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
+        // prevent pausing from resetting the input states
+        Phaser.Input.resetLocked = true; // TODO: not working???
         // callbacks for input that isn't necessary for movement
         // the 'onDown' signal is only triggered once per key down
         // TODO: put this behind a dev flag
@@ -71,6 +72,7 @@ module.exports = {
             if (game.paused) {
                 this.pauseText.destroy();
                 game.paused = false;
+                leftKey.reset();
             }
             else {
                 game.paused = true;
@@ -92,7 +94,7 @@ module.exports = {
         // reset movement
         player.body.velocity.x = 0;
 
-
+        // move left/right
         if (leftKey.isDown) {
             player.body.velocity.x = -this.groundSpeed;
 
@@ -124,6 +126,7 @@ module.exports = {
             }
         }
 
+        // use speed key to run!
         if (speedKey.isDown) {
             this.speedEnabled = true;
             player.body.velocity.x *= this.speedMultiplier;
@@ -134,6 +137,7 @@ module.exports = {
             }
         }
 
+        // jumping
         if (jumpKey.isDown && player.body.onFloor() ||
             this.autoJumpEnabled && player.body.onFloor()) {
             /// number achieved via playtesting
