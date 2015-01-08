@@ -7,11 +7,14 @@ module.exports = {
     speedMultiplier: 2,
     speedEnabled: false,
     autoJumpEnabled: false,
-    levelKeys: [],
     playerSpawn: null,
     playerDeaths: 0,
+    isDoorOpen: false,
     pauseText: null, // TODO: handle this better...
     deathText: null,
+    keyText: null,
+    keyUIEmpty: null,
+    keyUIFull: null,
     // methods
     preload: function () {
         game.load.tilemap('map', '../../assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
@@ -37,6 +40,7 @@ module.exports = {
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
         map.setTileIndexCallback(575, this.killPlayer, this);
+        map.setTileIndexCallback(138, this.completeLevel, this);
 
         // create some UI elements
         this.deathText = game.add.text(32,
@@ -47,6 +51,9 @@ module.exports = {
                                            fill: "#000",
                                            align: "left"
                                        });
+        this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
+        this.keyUIFull = game.add.image(32, 55, 'Player', 403);
+        this.keyUIFull.alpha = 0; // hide this image at first
 
         // create player & define player animations
         this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
@@ -54,17 +61,12 @@ module.exports = {
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
         player = game.add.sprite(this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth), 'Player');
+        player.smoothed = false;
         player.animations.add('idle', [19], 10, false);
         player.animations.add('left', [26, 27, 28, 29], 10, true);
         player.animations.play('idle');
         // define some player actions, like what happens on death
         player.events.onKilled.add(this.onDeath, this);
-
-        // create world objects
-        var keys = map.objects.Keys;
-        for (var i = 0; i < 1 ; i++) {
-            this.levelKeys[i] = game.add.sprite(keys[i].x, keys[i].y - 20, 'Player', keys[i].gid - 1);
-        };
 
         // initialize world physics
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -73,11 +75,18 @@ module.exports = {
         player.anchor.setTo(0.5, 0.5);
         player.body.collideWorldBounds = true;
         player.body.gravity.y = 1250;
+        // cheap way to have the key a 'physical body' yet not be
+        // affected by physics.
         player.body.maxVelocity.y = this.maxVelocity;
         player.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
-
         game.time.advancedTiming = true; // TODO: put behind debug flag
         // this populates game.time.fps variables
+
+        // create world objects
+        var keys = map.objects.Keys;
+        levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
+        game.physics.enable(levelKey);
+        levelKey.body.allowGravity = false;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -104,11 +113,11 @@ module.exports = {
             else {
                 game.paused = true;
                 this.pauseText = game.add.text(game.world.centerX,
-                                               game.world.centerY,
-                                               'PAUSED',
-                                               { font: "65px Arial",
-                                                 fill: '#000',
-                                                 align: 'center'});
+                                    game.world.centerY,
+                                    'PAUSED',
+                                    { font: "65px Arial",
+                                      fill: '#000',
+                                      align: 'center'});
             }
         }, this);
 
@@ -117,6 +126,7 @@ module.exports = {
     update: function () {
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
+        game.physics.arcade.collide(player, levelKey, this.collectKey, null, this);
 
         // reset movement
         player.body.velocity.x = 0;
@@ -182,6 +192,20 @@ module.exports = {
         if (player.alive) {
             player.kill();
         }
+    },
+    collectKey: function (player, key) {
+        this.keyUIFull.alpha = 1; // display keyUIFull in UI
+        key.destroy();
+        // openDoor()
+        this.isDoorOpen = true;
+        map.replace(167, 137, 0, 0, 50, 34);
+        map.replace(168, 138, 0, 0, 50, 34);
+        // end openDoor()
+    },
+    completeLevel: function () {
+        game.input.enabled = false;
+        // TODO: play little animation:
+        // 1) scale image up to 'zoom in', 2) make dude walk to door, 3) do a little jig
     },
     onDeath: function (player) {
         this.playerDeaths += 1;
