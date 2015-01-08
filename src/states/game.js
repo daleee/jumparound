@@ -10,8 +10,11 @@ module.exports = {
     playerSpawn: null,
     playerDeaths: 0,
     isDoorOpen: false,
-    pauseText: null, // TODO: handle this better...
+    pauseText: null, 
+    deathSubText: null,
     deathText: null,
+    deathSubTextTween: null,
+    deathTextTween: null,
     keyText: null,
     keyUIEmpty: null,
     keyUIFull: null,
@@ -43,14 +46,22 @@ module.exports = {
         map.setTileIndexCallback(138, this.completeLevel, this);
 
         // create some UI elements
-        this.deathText = game.add.text(32,
-                                       32,
-                                       "Deaths: " + this.playerDeaths,
-                                       {
-                                           font: "16px Arial",
-                                           fill: "#000",
-                                           align: "left"
-                                       });
+        this.deathText = game.add.text(game.world.centerX,
+                                       game.world.centerY - 65,
+                                       'DIED',
+                                       { font: "65px Arial",
+                                         fill: '#000',
+                                         align: 'center'});
+        this.deathSubText = game.add.text(game.world.centerX,
+                                          game.world.centerY + 10,
+                                          'You died X times.',
+                                          { font: "20px Arial",
+                                            fill: '#000',
+                                            align: 'center'});
+        this.deathText.alpha = 0;
+        this.deathSubText.alpha = 0;
+        this.deathTextTween = game.add.tween(this.deathText).to({alpha: 0}, 1000);
+        this.deathSubTextTween = game.add.tween(this.deathSubText).to({alpha: 0}, 1000);
         this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
         this.keyUIFull = game.add.image(32, 55, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
@@ -120,8 +131,6 @@ module.exports = {
                                       align: 'center'});
             }
         }, this);
-
-
     },
     update: function () {
         // check for collisions
@@ -202,19 +211,22 @@ module.exports = {
         map.replace(168, 138, 0, 0, 50, 34);
         // end openDoor()
     },
-    completeLevel: function () {
+    completeLevel: function (player, doorExit) {
+        player.body.moves = false;
         game.input.enabled = false;
         // TODO: play little animation:
-        // 1) scale image up to 'zoom in', 2) make dude walk to door, 3) do a little jig
     },
     onDeath: function (player) {
         this.playerDeaths += 1;
-        // TODO: display YOU DIED text
-        this.updateDeathText();
+        this.showDeathText();
         this.respawnPlayer(player);
     },
-    updateDeathText: function () {
-        this.deathText.setText('Deaths: ' + this.playerDeaths);
+    showDeathText: function () {
+        this.deathSubText.setText('You died ' + this.playerDeaths + ((this.playerDeaths === 1) ? ' time.' : ' times.'));
+        this.deathText.alpha = 1;
+        this.deathSubText.alpha = 1;
+        this.deathTextTween.start();
+        this.deathSubTextTween.start();
     },
     respawnPlayer: function (player) {
         player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
