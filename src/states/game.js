@@ -9,12 +9,12 @@ module.exports = {
     autoJumpEnabled: false,
     playerSpawn: null,
     playerDeaths: 0,
-    isDoorOpen: false,
     pauseText: null, 
     deathSubText: null,
     deathText: null,
     deathSubTextTween: null,
     deathTextTween: null,
+    levelKey: null,
     keyText: null,
     keyUIEmpty: null,
     keyUIFull: null,
@@ -51,6 +51,7 @@ module.exports = {
                                        'DIED',
                                        { font: "65px Arial",
                                          fill: '#000',
+                                         keys: null,
                                          align: 'center'});
         this.deathSubText = game.add.text(game.world.centerX,
                                           game.world.centerY + 10,
@@ -86,8 +87,6 @@ module.exports = {
         player.anchor.setTo(0.5, 0.5);
         player.body.collideWorldBounds = true;
         player.body.gravity.y = 1250;
-        // cheap way to have the key a 'physical body' yet not be
-        // affected by physics.
         player.body.maxVelocity.y = this.maxVelocity;
         player.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
         game.time.advancedTiming = true; // TODO: put behind debug flag
@@ -95,9 +94,12 @@ module.exports = {
 
         // create world objects
         var keys = map.objects.Keys;
-        levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
-        game.physics.enable(levelKey);
-        levelKey.body.allowGravity = false;
+        this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
+        game.physics.enable(this.levelKey);
+        // cheap way to have the key a 'physical body' yet not be
+        // affected by physics.
+        this.levelKey.body.allowGravity = false;
+        this.levelKey.body.immovable = true;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -135,7 +137,7 @@ module.exports = {
     update: function () {
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
-        game.physics.arcade.collide(player, levelKey, this.collectKey, null, this);
+        game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
 
         // reset movement
         player.body.velocity.x = 0;
@@ -204,12 +206,17 @@ module.exports = {
     },
     collectKey: function (player, key) {
         this.keyUIFull.alpha = 1; // display keyUIFull in UI
-        key.destroy();
-        // openDoor()
-        this.isDoorOpen = true;
+        this.openDoor();
+        key.body.enabled = false;
+        key.alpha = 0;
+    },
+    openDoor: function () {
         map.replace(167, 137, 0, 0, 50, 34);
         map.replace(168, 138, 0, 0, 50, 34);
-        // end openDoor()
+    },
+    closeDoor: function () {
+        map.replace(137, 167, 0, 0, 50, 34);
+        map.replace(138, 168, 0, 0, 50, 34);
     },
     completeLevel: function (player, doorExit) {
         player.body.moves = false;
@@ -219,6 +226,7 @@ module.exports = {
     onDeath: function (player) {
         this.playerDeaths += 1;
         this.showDeathText();
+        this.resetLevel();
         this.respawnPlayer(player);
     },
     showDeathText: function () {
@@ -227,6 +235,12 @@ module.exports = {
         this.deathSubText.alpha = 1;
         this.deathTextTween.start();
         this.deathSubTextTween.start();
+    },
+    resetLevel: function () {
+        this.closeDoor();
+        this.keyUIFull.alpha = 0;
+        this.levelKey.body.enabled = true;
+        this.levelKey.alpha = 1;
     },
     respawnPlayer: function (player) {
         player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
