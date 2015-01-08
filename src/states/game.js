@@ -7,7 +7,11 @@ module.exports = {
     speedMultiplier: 2,
     speedEnabled: false,
     autoJumpEnabled: false,
+    levelKeys: [],
+    playerSpawn: null,
+    playerDeaths: 0,
     pauseText: null, // TODO: handle this better...
+    deathText: null,
     // methods
     preload: function () {
         game.load.tilemap('map', '../../assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
@@ -24,19 +28,43 @@ module.exports = {
         // add tilemap & associated tilesets
         map = game.add.tilemap('map');
         map.addTilesetImage('Tileset');
-        map.setCollisionBetween(1, 1000);
+        // TODO: better way of setting all of these collisions
+        map.setCollisionBetween(122, 126);
+        map.setCollisionBetween(152, 166);
+        map.setCollisionBetween(362, 365);
+        map.setCollisionBetween(391, 395);
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
+        // define some tiles to have certain actions on collision
+        map.setTileIndexCallback(575, this.killPlayer, this);
+
+        // create some UI elements
+        this.deathText = game.add.text(32,
+                                       32,
+                                       "Deaths: " + this.playerDeaths,
+                                       {
+                                           font: "16px Arial",
+                                           fill: "#000",
+                                           align: "left"
+                                       });
 
         // create player & define player animations
-        var playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
+        this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
         // issue with tiled object layers require offsetting all
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
-        player = game.add.sprite(playerSpawn.x, (playerSpawn.y - map.tileWidth), 'Player');
+        player = game.add.sprite(this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth), 'Player');
         player.animations.add('idle', [19], 10, false);
         player.animations.add('left', [26, 27, 28, 29], 10, true);
         player.animations.play('idle');
+        // define some player actions, like what happens on death
+        player.events.onKilled.add(this.onDeath, this);
+
+        // create world objects
+        var keys = map.objects.Keys;
+        for (var i = 0; i < 1 ; i++) {
+            this.levelKeys[i] = game.add.sprite(keys[i].x, keys[i].y - 20, 'Player', keys[i].gid - 1);
+        };
 
         // initialize world physics
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -72,7 +100,6 @@ module.exports = {
             if (game.paused) {
                 this.pauseText.destroy();
                 game.paused = false;
-                leftKey.reset();
             }
             else {
                 game.paused = true;
@@ -88,7 +115,7 @@ module.exports = {
 
     },
     update: function () {
-        // check for world collision
+        // check for collisions
         game.physics.arcade.collide(player, platformLayer);
 
         // reset movement
@@ -147,8 +174,25 @@ module.exports = {
     render: function () {
         // DEBUG STUFF - turn off for production
         game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
-        game.debug.body(player); // draw AABB box for player
-        game.debug.bodyInfo(player, 16, 24);
+        //game.debug.body(player); // draw AABB box for player
+        //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
+    },
+    killPlayer: function (player, spikesLayer) {
+        if (player.alive) {
+            player.kill();
+        }
+    },
+    onDeath: function (player) {
+        this.playerDeaths += 1;
+        // TODO: display YOU DIED text
+        this.updateDeathText();
+        this.respawnPlayer(player);
+    },
+    updateDeathText: function () {
+        this.deathText.setText('Deaths: ' + this.playerDeaths);
+    },
+    respawnPlayer: function (player) {
+        player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
     }
 };
