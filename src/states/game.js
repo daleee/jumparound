@@ -47,7 +47,7 @@ module.exports = {
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
-        map.setTileIndexCallback(575, this.killPlayer, this);
+        map.setTileIndexCallback([573, 574, 575], this.killPlayer, this);
         map.setTileIndexCallback(138, this.completeLevel, this);
 
         // create some UI elements
@@ -111,6 +111,11 @@ module.exports = {
         // cheap way to have the key a 'physical body' yet not be
         // affected by physics.
         this.levelKey.body.allowGravity = false;
+        // these 2 lines prevent phaser from separating objects when they collide.
+        // all we want to know is that a collision happened, we don't want the bodies
+        // to react realistically here
+        this.levelKey.body.customSeparateX = true;
+        this.levelKey.body.customSeparateY = true;
         this.timeLevelStart = game.time.now;
 
         // initializ input references
@@ -263,7 +268,7 @@ module.exports = {
     resetLevel: function () {
         this.closeDoor();
         this.keyUIFull.alpha = 0;
-        //this.levelKey.body.enabled = true;
+        this.levelKey.body.enabled = true;
         this.levelKey.alpha = 1;
     },
     respawnPlayer: function (player) {
