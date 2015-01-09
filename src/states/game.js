@@ -9,6 +9,11 @@ module.exports = {
     autoJumpEnabled: false,
     playerSpawn: null,
     playerDeaths: 0,
+    levelComplete: false,
+    timeCurrent: 0,
+    timeOverall: 0,
+    timeLevelStart: 0,
+    timerText: null,
     pauseText: null, 
     deathSubText: null,
     deathText: null,
@@ -46,6 +51,13 @@ module.exports = {
         map.setTileIndexCallback(138, this.completeLevel, this);
 
         // create some UI elements
+        this.timerText = game.add.text(32,
+                                       32,
+                                       'Time: --:--',
+                                       { font: "20px Arial",
+                                         fill: '#000',
+                                         keys: null,
+                                         align: 'left'});
         this.deathText = game.add.text(game.world.centerX,
                                        game.world.centerY - 65,
                                        'DIED',
@@ -99,7 +111,7 @@ module.exports = {
         // cheap way to have the key a 'physical body' yet not be
         // affected by physics.
         this.levelKey.body.allowGravity = false;
-        this.levelKey.body.immovable = true;
+        this.timeLevelStart = game.time.now;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -135,6 +147,11 @@ module.exports = {
         }, this);
     },
     update: function () {
+        // update ui timer while the level is incomplete
+        if (!this.levelComplete) {
+            this.updateTimer();
+        }
+
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
@@ -199,16 +216,21 @@ module.exports = {
         //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
+    updateTimer: function () {
+        this.timeCurrent = (game.time.now - this.timeLevelStart) / 1000;
+        this.timerText.setText('Time: ' + this.timeCurrent.toFixed(2));
+        
+    },
     killPlayer: function (player, spikesLayer) {
         if (player.alive) {
             player.kill();
         }
     },
     collectKey: function (player, key) {
+        key.alpha = 0;
+        key.body.enabled = false;
         this.keyUIFull.alpha = 1; // display keyUIFull in UI
         this.openDoor();
-        key.body.enabled = false;
-        key.alpha = 0;
     },
     openDoor: function () {
         map.replace(167, 137, 0, 0, 50, 34);
@@ -219,6 +241,8 @@ module.exports = {
         map.replace(138, 168, 0, 0, 50, 34);
     },
     completeLevel: function (player, doorExit) {
+        this.levelComplete = true;
+        this.timeOverall += this.timeCurrent;
         player.body.moves = false;
         game.input.enabled = false;
         // TODO: play little animation:
@@ -239,7 +263,7 @@ module.exports = {
     resetLevel: function () {
         this.closeDoor();
         this.keyUIFull.alpha = 0;
-        this.levelKey.body.enabled = true;
+        //this.levelKey.body.enabled = true;
         this.levelKey.alpha = 1;
     },
     respawnPlayer: function (player) {
