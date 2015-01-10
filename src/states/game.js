@@ -136,6 +136,18 @@ module.exports = {
         // here
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
+        // moving platform create bitmap data.. going to create a
+        // black 63x11 square to serve as the texture for the moving
+        // platform
+        var bmd = game.add.bitmapData(63, 11);
+        bmd.ctx.beginPath();
+        bmd.ctx.rect(0, 0, 63, 11);
+        bmd.ctx.fillStyle = '#000';
+        bmd.ctx.fill();
+        // create the moving platform using bmd
+        movingPlatform = game.add.sprite(33 * 21, 22 * 21, bmd);
+        game.physics.enable(movingPlatform);
+        movingPlatform.body.allowGravity = false;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -181,12 +193,13 @@ module.exports = {
 
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
+        game.physics.arcade.collide(player, movingPlatform);
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
         if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
             this.killPlayer(player);
         }
 
-        // reset movement
+        // reset player movement
         player.body.velocity.x = 0;
 
         // move left/right
