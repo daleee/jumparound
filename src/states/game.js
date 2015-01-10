@@ -47,8 +47,9 @@ module.exports = {
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
-        map.setTileIndexCallback([573, 574, 575], this.killPlayer, this);
+        //map.setTileIndexCallback([573, 574, 575], this.killPlayer, this);
         map.setTileIndexCallback(138, this.completeLevel, this);
+
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -108,15 +109,25 @@ module.exports = {
         var keys = map.objects.Keys;
         this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
         game.physics.enable(this.levelKey);
+        // spikes from tiles
+        spikeGroup = game.add.group();
+        spikeGroup.enableBody = true;
+        spikeGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        map.createFromTiles([574, 575, 576], null, 'Player', undefined, spikeGroup, { alpha: 0 });
+        // need to iterate through each sprite and disable gravity, as well as fix hitbox size
+        for (var i = 0; i < spikeGroup.children.length; i++) {
+            spikeGroup.children[i].body.setSize(21, 11, 0, 10);
+            spikeGroup.children[i].body.allowGravity = false;
+        }
         // cheap way to have the key a 'physical body' yet not be
-        // affected by physics.
+        // affected by gravity.
         this.levelKey.body.allowGravity = false;
-        // these 2 lines prevent phaser from separating objects when they collide.
-        // all we want to know is that a collision happened, we don't want the bodies
-        // to react realistically here
+        // these 2 lines prevent phaser from separating objects when
+        // they collide.  all we want to know is that a collision
+        // happened, we don't want the bodies to react realistically
+        // here
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
-        this.timeLevelStart = game.time.now;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -150,6 +161,9 @@ module.exports = {
                                       align: 'center'});
             }
         }, this);
+        
+        // initialize timer
+        this.timeLevelStart = game.time.now;
     },
     update: function () {
         // update ui timer while the level is incomplete
@@ -160,6 +174,9 @@ module.exports = {
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
+        if (game.physics.arcade.overlap(player, spikeGroup)) {
+            this.killPlayer(player);
+        }
 
         // reset movement
         player.body.velocity.x = 0;
