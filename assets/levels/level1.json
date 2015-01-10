@@ -40,7 +40,7 @@
         }, 
         {
          "draworder":"topdown",
-         "height":34,
+         "height":0,
          "name":"Keys",
          "objects":[
                 {
@@ -61,7 +61,7 @@
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
-         "width":50,
+         "width":0,
          "x":0,
          "y":0
         }],

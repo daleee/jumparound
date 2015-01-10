@@ -110,14 +110,22 @@ module.exports = {
         this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
         game.physics.enable(this.levelKey);
         // spikes from tiles
-        spikeGroup = game.add.group();
-        spikeGroup.enableBody = true;
-        spikeGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        map.createFromTiles([574, 575, 576], null, 'Player', undefined, spikeGroup, { alpha: 0 });
+        topSpikesGroup = game.add.group();
+        topSpikesGroup.enableBody = true;
+        topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        bottomSpikesGroup = game.add.group();
+        bottomSpikesGroup.enableBody = true;
+        bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
+        map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
         // need to iterate through each sprite and disable gravity, as well as fix hitbox size
-        for (var i = 0; i < spikeGroup.children.length; i++) {
-            spikeGroup.children[i].body.setSize(21, 11, 0, 10);
-            spikeGroup.children[i].body.allowGravity = false;
+        for (var i = 0; i < topSpikesGroup.children.length; i++) {
+            topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
+            topSpikesGroup.children[i].body.allowGravity = false;
+        }
+        for (var i = 0; i < bottomSpikesGroup.children.length; i++) {
+            bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
+            bottomSpikesGroup.children[i].body.allowGravity = false;
         }
         // cheap way to have the key a 'physical body' yet not be
         // affected by gravity.
@@ -174,7 +182,7 @@ module.exports = {
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
-        if (game.physics.arcade.overlap(player, spikeGroup)) {
+        if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
             this.killPlayer(player);
         }
 
