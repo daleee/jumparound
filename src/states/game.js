@@ -1,8 +1,8 @@
+var Player = require('../sprites/player.js');
+var MovingPlatform = require('../sprites/movingplatform.js');
+
 module.exports = {
     // state variables
-    // TODO: put this in a separate sprite class
-    facing: 'right',
-    maxVelocity: 500,
     groundSpeed: 150,
     speedMultiplier: 2,
     speedEnabled: false,
@@ -47,7 +47,6 @@ module.exports = {
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
-        //map.setTileIndexCallback([573, 574, 575], this.killPlayer, this);
         map.setTileIndexCallback(138, this.completeLevel, this);
 
 
@@ -80,30 +79,20 @@ module.exports = {
         this.keyUIFull = game.add.image(32, 55, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
 
-        // create player & define player animations
+        // initialize world physics
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.physics.arcade.gravity.y = 300;
+        // the following line populates game.time.fps variables
+        game.time.advancedTiming = true; // TODO: put behind debug flag
+
+        // create player 
         this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
         // issue with tiled object layers require offsetting all
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
-        player = game.add.sprite(this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth), 'Player');
-        player.smoothed = false;
-        player.animations.add('idle', [19], 10, false);
-        player.animations.add('left', [26, 27, 28, 29], 10, true);
-        player.animations.play('idle');
+        player = new Player(game, this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth));
         // define some player actions, like what happens on death
         player.events.onKilled.add(this.onDeath, this);
-
-        // initialize world physics
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        game.physics.enable(player);
-        game.physics.arcade.gravity.y = 300;
-        player.anchor.setTo(0.5, 0.5);
-        player.body.collideWorldBounds = true;
-        player.body.gravity.y = 1250;
-        player.body.maxVelocity.y = this.maxVelocity;
-        player.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
-        game.time.advancedTiming = true; // TODO: put behind debug flag
-        // this populates game.time.fps variables
 
         // create world objects
         var keys = map.objects.Keys;
@@ -136,6 +125,7 @@ module.exports = {
         // here
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
+
         // moving platform create bitmap data.. going to create a
         // black 63x11 square to serve as the texture for the moving
         // platform
@@ -145,9 +135,9 @@ module.exports = {
         bmd.ctx.fillStyle = '#000';
         bmd.ctx.fill();
         // create the moving platform using bmd
-        movingPlatform = game.add.sprite(33 * 21, 22 * 21, bmd);
-        game.physics.enable(movingPlatform);
-        movingPlatform.body.allowGravity = false;
+        //movingPlatform = game.add.sprite(33 * 21, 22 * 21, bmd);
+        //game.physics.enable(movingPlatform);
+        //movingPlatform.body.allowGravity = false;
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -193,7 +183,7 @@ module.exports = {
 
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
-        game.physics.arcade.collide(player, movingPlatform);
+        //game.physics.arcade.collide(player, movingPlatform);
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
         if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
             this.killPlayer(player);
