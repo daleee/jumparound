@@ -127,8 +127,19 @@ module.exports = {
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
 
-        // create the moving platform using bmd
-        movingPlatform = new MovingPlatform(game, 33 * 21, 20 * 21, 'down', 50, 200);
+        // create the moving platform from tiled mapdata
+        var platforms = map.objects.Platforms;
+        platformsGroup = game.add.group();
+        for(var i = 0; i < platforms.length; i++) {
+            platformsGroup.add(new MovingPlatform(game,
+                                                  platforms[i].x,
+                                                  platforms[i].y,
+                                                  platforms[i].properties.startingDir,
+                                                  +platforms[i].properties.speed,
+                                                  +platforms[i].properties.distance
+                                                 )
+                              );
+        }
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -179,7 +190,7 @@ module.exports = {
 
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
-        game.physics.arcade.collide(player, movingPlatform, this.handlePlayerMovingPlatformCollision, null, this);
+        game.physics.arcade.collide(player, platformsGroup, this.handlePlayerMovingPlatformCollision, null, this);
 
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
         if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {

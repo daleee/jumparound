@@ -46,7 +46,7 @@
                 {
                  "gid":404,
                  "height":0,
-                 "name":"",
+                 "name":"Key",
                  "properties":
                     {
 
@@ -62,6 +62,35 @@
          "type":"objectgroup",
          "visible":true,
          "width":0,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "height":34,
+         "name":"Platforms",
+         "objects":[
+                {
+                 "gid":435,
+                 "height":0,
+                 "name":"1",
+                 "properties":
+                    {
+                     "distance":"200",
+                     "speed":"50",
+                     "startingDir":"down"
+                    },
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":693,
+                 "y":441
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "width":50,
          "x":0,
          "y":0
         }],

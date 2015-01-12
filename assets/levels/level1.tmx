@@ -12,6 +12,15 @@
   <object name="PlayerSpawn" gid="170" x="63" y="714"/>
  </objectgroup>
  <objectgroup name="Keys">
-  <object gid="404" x="861" y="399"/>
+  <object name="Key" gid="404" x="861" y="399"/>
+ </objectgroup>
+ <objectgroup name="Platforms">
+  <object name="1" gid="435" x="693" y="441">
+   <properties>
+    <property name="distance" value="200"/>
+    <property name="speed" value="50"/>
+    <property name="startingDir" value="down"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>
