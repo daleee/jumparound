@@ -7,7 +7,101 @@ game.state.add('menu', require('./states/menu.js') );
 game.state.add('game', require('./states/game.js') );
 game.state.start('boot');
 
-},{"./states/boot.js":2,"./states/game.js":3,"./states/load.js":4,"./states/menu.js":5}],2:[function(require,module,exports){
+},{"./states/boot.js":4,"./states/game.js":5,"./states/load.js":6,"./states/menu.js":7}],2:[function(require,module,exports){
+var MovingPlatform = function (game, bmd, startingX, startingY, direction, speed, distance) {
+    Phaser.Sprite.call(this, game, startingX, startingY, bmd);
+    // initialize class variables
+    this.smoothed = false;
+    this.startingX = startingX;
+    this.startingY = startingY;
+    this.direction = direction;
+    this.speed = speed || 150;
+    this.distance = distance;
+    this.destination = { x: 0, y: 0 };
+
+
+    // physics properties
+    game.physics.enable(this);
+    this.body.allowGravity = false;
+
+    // decide where the platform will be going
+    if (this.direction === 'down') {
+        this.destination.y = this.body.y + this.distance;
+    }
+
+    // add sprite to game stage/world
+    game.add.existing(this);
+};
+
+MovingPlatform.prototype = Object.create(Phaser.Sprite.prototype);
+MovingPlatform.prototype.constructor = MovingPlatform;
+
+MovingPlatform.prototype.update = function () {
+    var difference = 0;
+    if (this.direction === 'down') {
+        if (this.body.y + this.speed < this.destination.y) {
+            this.body.velocity.y = this.speed;
+        }
+        else {
+            difference = this.destination.y - this.body.y;
+            this.body.velocity.y = difference;
+            this.destination.y = this.body.y - this.distance;
+            this.direction = 'up';
+        }
+    }
+    else if (this.direction === 'up') {
+        if (this.body.y - this.speed > this.destination.y) {
+            this.body.velocity.y = -this.speed;
+        }
+        else {
+            difference = this.body.y - this.destination.y;
+            this.body.velocity.y = difference;
+            this.destination.y = this.body.y + this.distance;
+            this.direction = 'down';
+        }
+    }
+    // TODO: implement left/right movement support
+};
+
+module.exports = MovingPlatform;
+
+},{}],3:[function(require,module,exports){
+// Player must be created after physics system is initialized
+var Player = function (game, x, y) {
+    Phaser.Sprite.call(this, game, x, y, 'Player');
+    // initialize class variables
+    this.deaths = 0;
+    this.facing = 'right';
+    this.smoothed = false;
+    this.groundSpeed = 150;
+    this.maxVelocity = 500;
+
+    // set animations
+    this.animations.add('idle', [19], 10, false);
+    this.animations.add('left', [26, 27, 28, 29], 10, true);
+    this.animations.play('idle');
+
+    // physics properties
+    game.physics.enable(this);
+    this.anchor.setTo(0.5, 0.5);
+    this.body.collideWorldBounds = true;
+    this.body.gravity.y = 1250;
+    this.body.maxVelocity.y = this.maxVelocity;
+    this.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
+
+    // add sprite to game stage/world
+    game.add.existing(this);
+};
+
+Player.prototype = Object.create(Phaser.Sprite.prototype);
+Player.prototype.constructor = Player;
+
+Player.prototype.update = function () {
+};
+
+module.exports = Player;
+
+},{}],4:[function(require,module,exports){
 module.exports = {
     init: function () {
         //Add here your scaling options
@@ -24,12 +118,12 @@ module.exports = {
     }
 };
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+var Player = require('../sprites/player.js');
+var MovingPlatform = require('../sprites/movingplatform.js');
+
 module.exports = {
     // state variables
-    // TODO: put this in a separate sprite class
-    facing: 'right',
-    maxVelocity: 500,
     groundSpeed: 150,
     speedMultiplier: 2,
     speedEnabled: false,
@@ -74,8 +168,8 @@ module.exports = {
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
-        map.setTileIndexCallback([573, 574, 575], this.killPlayer, this);
         map.setTileIndexCallback(138, this.completeLevel, this);
+
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -106,44 +200,63 @@ module.exports = {
         this.keyUIFull = game.add.image(32, 55, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
 
-        // create player & define player animations
+        // initialize world physics
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.physics.arcade.gravity.y = 300;
+        // the following line populates game.time.fps variables
+        game.time.advancedTiming = true; // TODO: put behind debug flag
+
+        // create player 
         this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
         // issue with tiled object layers require offsetting all
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
-        player = game.add.sprite(this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth), 'Player');
-        player.smoothed = false;
-        player.animations.add('idle', [19], 10, false);
-        player.animations.add('left', [26, 27, 28, 29], 10, true);
-        player.animations.play('idle');
+        player = new Player(game, this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth));
         // define some player actions, like what happens on death
         player.events.onKilled.add(this.onDeath, this);
-
-        // initialize world physics
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        game.physics.enable(player);
-        game.physics.arcade.gravity.y = 300;
-        player.anchor.setTo(0.5, 0.5);
-        player.body.collideWorldBounds = true;
-        player.body.gravity.y = 1250;
-        player.body.maxVelocity.y = this.maxVelocity;
-        player.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
-        game.time.advancedTiming = true; // TODO: put behind debug flag
-        // this populates game.time.fps variables
 
         // create world objects
         var keys = map.objects.Keys;
         this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
         game.physics.enable(this.levelKey);
+        // spikes from tiles
+        topSpikesGroup = game.add.group();
+        topSpikesGroup.enableBody = true;
+        topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        bottomSpikesGroup = game.add.group();
+        bottomSpikesGroup.enableBody = true;
+        bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
+        map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
+        // need to iterate through each sprite and disable gravity, as well as fix hitbox size
+        for (var i = 0; i < topSpikesGroup.children.length; i++) {
+            topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
+            topSpikesGroup.children[i].body.allowGravity = false;
+        }
+        for (var i = 0; i < bottomSpikesGroup.children.length; i++) {
+            bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
+            bottomSpikesGroup.children[i].body.allowGravity = false;
+        }
         // cheap way to have the key a 'physical body' yet not be
-        // affected by physics.
+        // affected by gravity.
         this.levelKey.body.allowGravity = false;
-        // these 2 lines prevent phaser from separating objects when they collide.
-        // all we want to know is that a collision happened, we don't want the bodies
-        // to react realistically here
+        // these 2 lines prevent phaser from separating objects when
+        // they collide.  all we want to know is that a collision
+        // happened, we don't want the bodies to react realistically
+        // here
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
-        this.timeLevelStart = game.time.now;
+
+        // moving platform create bitmap data.. going to create a
+        // black 63x11 square to serve as the texture for the moving
+        // platform
+        var bmd = game.add.bitmapData(63, 11);
+        bmd.ctx.beginPath();
+        bmd.ctx.rect(0, 0, 63, 11);
+        bmd.ctx.fillStyle = '#000';
+        bmd.ctx.fill();
+        // create the moving platform using bmd
+        movingPlatform = new MovingPlatform(game, bmd, 33 * 21, 20 * 21, 'down', 50, 200);
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -177,6 +290,14 @@ module.exports = {
                                       align: 'center'});
             }
         }, this);
+        
+        // initialize timer
+        this.timeLevelStart = game.time.now;
+    },
+    handlePlayerMovingPlatformCollision: function (player, platform) {
+        if (player.body.touching.down) {
+            player.body.blocked.down = true;
+        }
     },
     update: function () {
         // update ui timer while the level is incomplete
@@ -186,9 +307,14 @@ module.exports = {
 
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
-        game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
+        game.physics.arcade.collide(player, movingPlatform, this.handlePlayerMovingPlatformCollision, null, this);
 
-        // reset movement
+        game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
+        if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
+            this.killPlayer(player);
+        }
+
+        // reset player movement
         player.body.velocity.x = 0;
 
         // move left/right
@@ -245,7 +371,7 @@ module.exports = {
         // DEBUG STUFF - turn off for production
         game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
         //game.debug.body(player); // draw AABB box for player
-        //game.debug.bodyInfo(player, 16, 24);
+        game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
     updateTimer: function () {
@@ -303,7 +429,7 @@ module.exports = {
     }
 };
 
-},{}],4:[function(require,module,exports){
+},{"../sprites/movingplatform.js":2,"../sprites/player.js":3}],6:[function(require,module,exports){
 module.exports = {
     preload: function () {
         
@@ -314,7 +440,7 @@ module.exports = {
     }
 };
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = {
     preload: function () {
         
