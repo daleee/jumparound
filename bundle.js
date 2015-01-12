@@ -371,7 +371,7 @@ module.exports = {
         // DEBUG STUFF - turn off for production
         game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
         //game.debug.body(player); // draw AABB box for player
-        game.debug.bodyInfo(player, 16, 24);
+        //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
     updateTimer: function () {
