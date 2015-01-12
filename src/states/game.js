@@ -135,9 +135,7 @@ module.exports = {
         bmd.ctx.fillStyle = '#000';
         bmd.ctx.fill();
         // create the moving platform using bmd
-        //movingPlatform = game.add.sprite(33 * 21, 22 * 21, bmd);
-        //game.physics.enable(movingPlatform);
-        //movingPlatform.body.allowGravity = false;
+        movingPlatform = new MovingPlatform(game, bmd, 33 * 21, 20 * 21, 'down', 50, 200);
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -175,6 +173,11 @@ module.exports = {
         // initialize timer
         this.timeLevelStart = game.time.now;
     },
+    handlePlayerMovingPlatformCollision: function (player, platform) {
+        if (player.body.touching.down) {
+            player.body.blocked.down = true;
+        }
+    },
     update: function () {
         // update ui timer while the level is incomplete
         if (!this.levelComplete) {
@@ -183,7 +186,8 @@ module.exports = {
 
         // check for collisions
         game.physics.arcade.collide(player, platformLayer);
-        //game.physics.arcade.collide(player, movingPlatform);
+        game.physics.arcade.collide(player, movingPlatform, this.handlePlayerMovingPlatformCollision, null, this);
+
         game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
         if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
             this.killPlayer(player);
@@ -246,7 +250,7 @@ module.exports = {
         // DEBUG STUFF - turn off for production
         game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
         //game.debug.body(player); // draw AABB box for player
-        //game.debug.bodyInfo(player, 16, 24);
+        game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
     updateTimer: function () {
