@@ -1,5 +1,5 @@
-var MovingPlatform = function (game, bmd, startingX, startingY, direction, speed, distance) {
-    Phaser.Sprite.call(this, game, startingX, startingY, bmd);
+var MovingPlatform = function (game, startingX, startingY, direction, speed, distance) {
+    Phaser.Sprite.call(this, game, startingX, startingY, 'movingplatform');
     // initialize class variables
     this.smoothed = false;
     this.startingX = startingX;

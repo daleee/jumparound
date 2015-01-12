@@ -28,6 +28,7 @@ module.exports = {
         game.load.tilemap('map', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('Tileset', 'assets/images/spritesheet.png');
         game.load.image('background', 'assets/images/bg.png');
+        game.load.image('movingplatform', 'assets/images/movingplatform.png');
         // spritesheet(key to use, url, tile width, tile height, ???, sheet margin, tile padding)
         game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
     },
@@ -126,16 +127,8 @@ module.exports = {
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
 
-        // moving platform create bitmap data.. going to create a
-        // black 63x11 square to serve as the texture for the moving
-        // platform
-        var bmd = game.add.bitmapData(63, 11);
-        bmd.ctx.beginPath();
-        bmd.ctx.rect(0, 0, 63, 11);
-        bmd.ctx.fillStyle = '#000';
-        bmd.ctx.fill();
         // create the moving platform using bmd
-        movingPlatform = new MovingPlatform(game, bmd, 33 * 21, 20 * 21, 'down', 50, 200);
+        movingPlatform = new MovingPlatform(game, 33 * 21, 20 * 21, 'down', 50, 200);
 
         // initializ input references
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
