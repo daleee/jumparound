@@ -23,18 +23,11 @@ module.exports = {
     keyText: null,
     keyUIEmpty: null,
     keyUIFull: null,
-    // methods
-    preload: function () {
-        game.load.tilemap('map', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
-        game.load.image('Tileset', 'assets/images/spritesheet.png');
-        game.load.image('background', 'assets/images/bg.png');
-        game.load.image('movingplatform', 'assets/images/movingplatform.png');
-        // spritesheet(key to use, url, tile width, tile height, ???, sheet margin, tile padding)
-        game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
-    },
+    // state methods
     create: function () {
         console.log('create: in game state');
 
+        // add background image
         game.add.sprite(0, 0, 'background');
 
         // add tilemap & associated tilesets
@@ -49,7 +42,6 @@ module.exports = {
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
         map.setTileIndexCallback(138, this.completeLevel, this);
-
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -212,8 +204,7 @@ module.exports = {
         }
         else if (rightKey.isDown) {
             player.body.velocity.x = this.groundSpeed;
-
-            // TODO: get animation frames for 'right'
+            
             if (this.facing != 'right') {
                 if (this.facing === 'left') {
                     player.scale.x *= -1;
@@ -284,9 +275,8 @@ module.exports = {
     completeLevel: function (player, doorExit) {
         this.levelComplete = true;
         this.timeOverall += this.timeCurrent;
-        player.body.moves = false;
+        player.body.enable = false;
         game.input.enabled = false;
-        // TODO: play little animation:
     },
     onDeath: function (player) {
         this.playerDeaths += 1;

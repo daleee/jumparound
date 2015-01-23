@@ -19,6 +19,7 @@
                 {
                  "gid":170,
                  "height":0,
+                 "id":1,
                  "name":"PlayerSpawn",
                  "properties":
                     {
@@ -46,6 +47,7 @@
                 {
                  "gid":404,
                  "height":0,
+                 "id":2,
                  "name":"Key",
                  "properties":
                     {
@@ -67,12 +69,13 @@
         }, 
         {
          "draworder":"topdown",
-         "height":34,
+         "height":0,
          "name":"Platforms",
          "objects":[
                 {
                  "gid":435,
                  "height":0,
+                 "id":3,
                  "name":"1",
                  "properties":
                     {
@@ -90,10 +93,11 @@
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
-         "width":50,
+         "width":0,
          "x":0,
          "y":0
         }],
+ "nextobjectid":4,
  "orientation":"orthogonal",
  "properties":
     {
