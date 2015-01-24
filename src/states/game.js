@@ -13,14 +13,19 @@ module.exports = {
     timeCurrent: 0,
     timeOverall: 0,
     timeLevelStart: 0,
+    levelKey: null,
+    
     timerText: null,
     pauseText: null, 
     deathSubText: null,
     deathText: null,
-    deathSubTextTween: null,
-    deathTextTween: null,
-    levelKey: null,
     keyText: null,
+    lvlWinText: null,
+    lvlWinSubText: null,
+
+    deathTextTween: null,
+    deathSubTextTween: null,
+
     keyUIEmpty: null,
     keyUIFull: null,
     // state methods
@@ -41,7 +46,7 @@ module.exports = {
         platformLayer = map.createLayer('Platforms');
         platformLayer.resizeWorld();
         // define some tiles to have certain actions on collision
-        map.setTileIndexCallback(138, this.completeLevel, this);
+        map.setTileIndexCallback(167, this.completeLevel, this);
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -51,23 +56,58 @@ module.exports = {
                                          fill: '#000',
                                          keys: null,
                                          align: 'left'});
-        this.deathText = game.add.text(game.world.centerX,
+        this.pauseText = game.add.text(0,
+                                       game.world.centerY,
+                                       'PAUSED',
+                                       { font: "65px Arial",
+                                         fill: '#000',
+                                         align: 'center'});
+        this.pauseText.x = game.world.centerX - (this.pauseText.width / 2);
+        this.pauseText.alpha = 0;
+        this.deathText = game.add.text(0,
                                        game.world.centerY - 65,
                                        'DIED',
                                        { font: "65px Arial",
                                          fill: '#000',
                                          keys: null,
                                          align: 'center'});
-        this.deathSubText = game.add.text(game.world.centerX,
+        this.deathText.alpha = 0;
+        this.deathText.x = game.world.centerX - (this.deathText.width / 2);
+        this.deathSubText = game.add.text(0,
                                           game.world.centerY + 10,
                                           'You died X times.',
                                           { font: "20px Arial",
                                             fill: '#000',
                                             align: 'center'});
-        this.deathText.alpha = 0;
         this.deathSubText.alpha = 0;
+        this.lvlWinText = game.add.text(0,
+                                        game.world.centerY / 2,
+                                        'LEVEL COMPLETE!',
+                                        { font: "65px Arial",
+                                          fill: '#000',
+                                          align: 'center'});
+        this.lvlWinSubText = game.add.text(0,
+                                           game.world.centerY,
+                                           'placeholder',
+                                           { font: "45px Arial",
+                                             fill: '#000',
+                                             align: 'left'});
+        
+        this.lvlWinText.x = (game.world.centerX - (this.lvlWinText.width / 2));
+        this.lvlWinText.alpha = 0;
+        this.lvlWinSubText.alpha = 0;
+        this.lvlWinText.addColor('red', 6);
+        this.lvlWinText.addColor('orange', 7);
+        this.lvlWinText.addColor('yellow', 8);
+        this.lvlWinText.addColor('green', 9);
+        this.lvlWinText.addColor('blue', 10);
+        this.lvlWinText.addColor('indigo', 11);
+        this.lvlWinText.addColor('violet', 12);
+        this.lvlWinText.addColor('red', 13);
+
         this.deathTextTween = game.add.tween(this.deathText).to({alpha: 0}, 1000);
         this.deathSubTextTween = game.add.tween(this.deathSubText).to({alpha: 0}, 1000);
+
         this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
         this.keyUIFull = game.add.image(32, 55, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
@@ -152,17 +192,12 @@ module.exports = {
         }, this);
         pauseKey.onDown.add(function (key) {
             if (game.paused) {
-                this.pauseText.destroy();
+                this.pauseText.alpha = 0;
                 game.paused = false;
             }
             else {
+                this.pauseText.alpha = 1;
                 game.paused = true;
-                this.pauseText = game.add.text(game.world.centerX,
-                                    game.world.centerY,
-                                    'PAUSED',
-                                    { font: "65px Arial",
-                                      fill: '#000',
-                                      align: 'center'});
             }
         }, this);
         
@@ -277,6 +312,11 @@ module.exports = {
         this.timeOverall += this.timeCurrent;
         player.body.enable = false;
         game.input.enabled = false;
+        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.timeOverall.toFixed(2) + ' seconds');
+        // reset text x since content has been changed
+        this.lvlWinSubText.x = (game.world.centerX - (this.lvlWinSubText.width / 2));
+        this.lvlWinText.alpha = 1;
+        this.lvlWinSubText.alpha = 1;
     },
     onDeath: function (player) {
         this.playerDeaths += 1;
@@ -286,6 +326,7 @@ module.exports = {
     },
     showDeathText: function () {
         this.deathSubText.setText('You died ' + this.playerDeaths + ((this.playerDeaths === 1) ? ' time.' : ' times.'));
+        this.deathSubText.x = game.world.centerX - (this.deathSubText.width / 2);
         this.deathText.alpha = 1;
         this.deathSubText.alpha = 1;
         this.deathTextTween.start();
