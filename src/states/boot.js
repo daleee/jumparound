@@ -10,6 +10,11 @@ module.exports = {
 
     create: function () {
         console.log('create: in boot state');
+
+        // set initial level to be 1, as this game will always start
+        // from the beginning...
+        game.currentLevel = 1;
+        game.timeOverall = 0;
         game.state.start('load');
     }
 };

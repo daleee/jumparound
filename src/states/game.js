@@ -11,7 +11,6 @@ module.exports = {
     playerDeaths: 0,
     levelComplete: false,
     timeCurrent: 0,
-    timeOverall: 0,
     timeLevelStart: 0,
     levelKey: null,
     
@@ -31,22 +30,29 @@ module.exports = {
     // state methods
     create: function () {
         console.log('create: in game state');
+        var i; // for later loops.
+        if (game.currentLevel === 1) {
+            console.log('loading level 1');
+            // add background image
+            game.add.sprite(0, 0, 'background');
 
-        // add background image
-        game.add.sprite(0, 0, 'background');
+            // add tilemap & associated tilesets
+            map = game.add.tilemap('map');
+            map.addTilesetImage('Tileset');
+            // TODO: better way of setting all of these collisions
+            map.setCollisionBetween(122, 126);
+            map.setCollisionBetween(152, 166);
+            map.setCollisionBetween(362, 365);
+            map.setCollisionBetween(391, 395);
+            platformLayer = map.createLayer('Platforms');
+            platformLayer.resizeWorld();
+            // define some tiles to have certain actions on collision
+            map.setTileIndexCallback(137, this.completeLevel, this);
+        }
+        else if (game.currentLevel === 2) {
+            console.log('loading level 2');
+        }
 
-        // add tilemap & associated tilesets
-        map = game.add.tilemap('map');
-        map.addTilesetImage('Tileset');
-        // TODO: better way of setting all of these collisions
-        map.setCollisionBetween(122, 126);
-        map.setCollisionBetween(152, 166);
-        map.setCollisionBetween(362, 365);
-        map.setCollisionBetween(391, 395);
-        platformLayer = map.createLayer('Platforms');
-        platformLayer.resizeWorld();
-        // define some tiles to have certain actions on collision
-        map.setTileIndexCallback(167, this.completeLevel, this);
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -141,11 +147,11 @@ module.exports = {
         map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
         map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
         // need to iterate through each sprite and disable gravity, as well as fix hitbox size
-        for (var i = 0; i < topSpikesGroup.children.length; i++) {
+        for (i = 0; i < topSpikesGroup.children.length; i++) {
             topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
             topSpikesGroup.children[i].body.allowGravity = false;
         }
-        for (var i = 0; i < bottomSpikesGroup.children.length; i++) {
+        for (i = 0; i < bottomSpikesGroup.children.length; i++) {
             bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
             bottomSpikesGroup.children[i].body.allowGravity = false;
         }
@@ -160,9 +166,12 @@ module.exports = {
         this.levelKey.body.customSeparateY = true;
 
         // create the moving platform from tiled mapdata
-        var platforms = map.objects.Platforms;
+        var platforms = null;
+        if (map.objects.Platforms) {
+            platforms = map.objects.Platforms;
+        }
         platformsGroup = game.add.group();
-        for(var i = 0; i < platforms.length; i++) {
+        for(i = 0; i < platforms.length; i++) {
             platformsGroup.add(new MovingPlatform(game,
                                                   platforms[i].x,
                                                   platforms[i].y,
@@ -283,6 +292,14 @@ module.exports = {
         //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
+    shutdown: function () {
+        console.log('shutting down state');
+        map = null;
+        platformLayer = null;
+        this.playerSpawn = null;
+        this.levelKey = null;
+        // destroy platforms
+    },
     updateTimer: function () {
         this.timeCurrent = (game.time.now - this.timeLevelStart) / 1000;
         this.timerText.setText('Time: ' + this.timeCurrent.toFixed(2));
@@ -308,15 +325,32 @@ module.exports = {
         map.replace(138, 168, 0, 0, 50, 34);
     },
     completeLevel: function (player, doorExit) {
-        this.levelComplete = true;
-        this.timeOverall += this.timeCurrent;
-        player.body.enable = false;
         game.input.enabled = false;
-        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.timeOverall.toFixed(2) + ' seconds');
+        player.body.enable = false;
+        player.animations.stop();
+        game.timeOverall += this.timeCurrent;
+        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + game.timeOverall.toFixed(2) + ' seconds');
         // reset text x since content has been changed
         this.lvlWinSubText.x = (game.world.centerX - (this.lvlWinSubText.width / 2));
         this.lvlWinText.alpha = 1;
         this.lvlWinSubText.alpha = 1;
+        this.levelComplete = true;
+        game.time.events.add(Phaser.Timer.SECOND * 3, this.loadNextLevel, this);
+    },
+    loadNextLevel: function () {
+        // re-enable stuff we just disabled
+        game.input.enabled = true;
+        player.body.enable = true;
+        // i have no idea why the following variable doesnt reset
+        // itself upon loading the new state but it doesnt.. although
+        // most other things seem to... perhaps the world is not being
+        // destroyed properly. TODO: look into this.
+        this.levelComplete = false;
+        // increment level counter
+        game.currentLevel++;
+        game.state.start('game');
+        // TODO: if level === 6, load end screen. otheriwse, increment
+        // and load next level
     },
     onDeath: function (player) {
         this.playerDeaths += 1;
