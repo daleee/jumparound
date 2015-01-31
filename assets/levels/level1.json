@@ -79,7 +79,7 @@
                  "name":"1",
                  "properties":
                     {
-                     "distance":"200",
+                     "distance":"84",
                      "speed":"50",
                      "startingDir":"down"
                     },

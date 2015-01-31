@@ -13,6 +13,7 @@ module.exports = {
     timeCurrent: 0,
     timeLevelStart: 0,
     levelKey: null,
+    map: null,
     
     timerText: null,
     pauseText: null, 
@@ -30,6 +31,7 @@ module.exports = {
     // state methods
     create: function () {
         console.log('create: in game state');
+
         var i; // for later loops.
         if (game.currentLevel === 1) {
             console.log('loading level 1');
@@ -37,22 +39,28 @@ module.exports = {
             game.add.sprite(0, 0, 'background');
 
             // add tilemap & associated tilesets
-            map = game.add.tilemap('map');
-            map.addTilesetImage('Tileset');
-            // TODO: better way of setting all of these collisions
-            map.setCollisionBetween(122, 126);
-            map.setCollisionBetween(152, 166);
-            map.setCollisionBetween(362, 365);
-            map.setCollisionBetween(391, 395);
-            platformLayer = map.createLayer('Platforms');
-            platformLayer.resizeWorld();
-            // define some tiles to have certain actions on collision
-            map.setTileIndexCallback(137, this.completeLevel, this);
+            this.map = game.add.tilemap('level1');
+            this.map.addTilesetImage('Tileset');
         }
         else if (game.currentLevel === 2) {
             console.log('loading level 2');
+
+            game.add.sprite(0, 0, 'background');
+
+            this.map = game.add.tilemap('level2');
+            this.map.addTilesetImage('Tileset');
         }
 
+        // create shared level ccomponents
+        // TODO: better way of setting all of these collisions
+        this.map.setCollisionBetween(122, 126);
+        this.map.setCollisionBetween(152, 166);
+        this.map.setCollisionBetween(362, 365);
+        this.map.setCollisionBetween(391, 395);
+        platformLayer = this.map.createLayer('Platforms');
+        platformLayer.resizeWorld();
+        // define some tiles to have certain actions on collision
+        this.map.setTileIndexCallback(137, this.completeLevel, this);
 
         // create some UI elements
         this.timerText = game.add.text(32,
@@ -111,8 +119,6 @@ module.exports = {
         this.lvlWinText.addColor('violet', 12);
         this.lvlWinText.addColor('red', 13);
 
-        this.deathTextTween = game.add.tween(this.deathText).to({alpha: 0}, 1000);
-        this.deathSubTextTween = game.add.tween(this.deathSubText).to({alpha: 0}, 1000);
 
         this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
         this.keyUIFull = game.add.image(32, 55, 'Player', 403);
@@ -125,16 +131,16 @@ module.exports = {
         game.time.advancedTiming = true; // TODO: put behind debug flag
 
         // create player 
-        this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
+        this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
         // issue with tiled object layers require offsetting all
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
-        player = new Player(game, this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth));
+        player = new Player(game, this.playerSpawn.x, (this.playerSpawn.y - this.map.tileWidth));
         // define some player actions, like what happens on death
         player.events.onKilled.add(this.onDeath, this);
 
         // create world objects
-        var keys = map.objects.Keys;
+        var keys = this.map.objects.Keys;
         this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
         game.physics.enable(this.levelKey);
         // spikes from tiles
@@ -144,8 +150,8 @@ module.exports = {
         bottomSpikesGroup = game.add.group();
         bottomSpikesGroup.enableBody = true;
         bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
-        map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
+        this.map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
+        this.map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
         // need to iterate through each sprite and disable gravity, as well as fix hitbox size
         for (i = 0; i < topSpikesGroup.children.length; i++) {
             topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
@@ -167,8 +173,8 @@ module.exports = {
 
         // create the moving platform from tiled mapdata
         var platforms = null;
-        if (map.objects.Platforms) {
-            platforms = map.objects.Platforms;
+        if (this.map.objects.Platforms) {
+            platforms = this.map.objects.Platforms;
         }
         platformsGroup = game.add.group();
         for(i = 0; i < platforms.length; i++) {
@@ -294,7 +300,7 @@ module.exports = {
     },
     shutdown: function () {
         console.log('shutting down state');
-        map = null;
+        this.map = null;
         platformLayer = null;
         this.playerSpawn = null;
         this.levelKey = null;
@@ -317,12 +323,12 @@ module.exports = {
         this.openDoor();
     },
     openDoor: function () {
-        map.replace(167, 137, 0, 0, 50, 34);
-        map.replace(168, 138, 0, 0, 50, 34);
+        this.map.replace(167, 137, 0, 0, 50, 34);
+        this.map.replace(168, 138, 0, 0, 50, 34);
     },
     closeDoor: function () {
-        map.replace(137, 167, 0, 0, 50, 34);
-        map.replace(138, 168, 0, 0, 50, 34);
+        this.map.replace(137, 167, 0, 0, 50, 34);
+        this.map.replace(138, 168, 0, 0, 50, 34);
     },
     completeLevel: function (player, doorExit) {
         game.input.enabled = false;
@@ -359,12 +365,17 @@ module.exports = {
         this.respawnPlayer(player);
     },
     showDeathText: function () {
+        if (this.deathTextTween &&
+            this.deathTextTween.isRunning) {
+            this.deathTextTween.stop();
+            this.deathSubTextTween.stop();
+        }
         this.deathSubText.setText('You died ' + this.playerDeaths + ((this.playerDeaths === 1) ? ' time.' : ' times.'));
         this.deathSubText.x = game.world.centerX - (this.deathSubText.width / 2);
         this.deathText.alpha = 1;
         this.deathSubText.alpha = 1;
-        this.deathTextTween.start();
-        this.deathSubTextTween.start();
+        this.deathTextTween = game.add.tween(this.deathText).to({alpha: 0}, 1000).start();
+        this.deathSubTextTween = game.add.tween(this.deathSubText).to({alpha: 0}, 1000).start();
     },
     resetLevel: function () {
         this.closeDoor();
