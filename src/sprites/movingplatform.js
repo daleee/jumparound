@@ -31,7 +31,6 @@ var MovingPlatform = function (game, startingX, startingY, direction, speed, dis
 
     // add sprite to game stage/world
     game.add.existing(this);
-    console.log('initial',{ startingX: this.startingX, startingY: this.startingY, destination: this.destination.y, distance: this.distance});
 };
 
 MovingPlatform.prototype = Object.create(Phaser.Sprite.prototype);
@@ -63,7 +62,6 @@ MovingPlatform.prototype.update = function () {
         else {
             this.destination.x -= this.distance;
             this.direction = 'left';
-            console.log('going left', {x: this.x, destination: this.destination.x});
         }
     }
     else if (this.direction === 'left') {
@@ -73,7 +71,6 @@ MovingPlatform.prototype.update = function () {
         else {
             this.destination.x += this.distance;
             this.direction = 'right';
-            console.log('going right', {x: this.x, destination: this.destination.x});
         }
     }
 };

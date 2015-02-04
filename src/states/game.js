@@ -36,7 +36,9 @@ module.exports = {
         if (game.currentLevel === 1) {
             console.log('loading level 1');
             // add background image
-            game.add.sprite(0, 0, 'background');
+            this.bg = game.add.sprite(0, 0, 'background-castle');
+            this.bg.width = game.world.width;
+            this.bg.height = game.world.width;
 
             // add tilemap & associated tilesets
             this.map = game.add.tilemap('level1');
@@ -45,9 +47,19 @@ module.exports = {
         else if (game.currentLevel === 2) {
             console.log('loading level 2');
 
-            game.add.sprite(0, 0, 'background');
+            this.bg = game.add.sprite(0, 0, 'background-castle');
+            this.bg.width = game.world.width;
+            this.bg.height = game.world.width;
 
             this.map = game.add.tilemap('level2');
+            this.map.addTilesetImage('Tileset');
+        }
+        else if (game.currentLevel === 3) {
+            console.log('loading level 3');
+
+            game.add.sprite(0, 0, 'background-castle');
+
+            this.map = game.add.tilemap('level3');
             this.map.addTilesetImage('Tileset');
         }
 
