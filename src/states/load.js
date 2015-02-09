@@ -1,5 +1,9 @@
 module.exports = {
     preload: function () {
+        // create preload bar
+        this.preloadBar = this.add.sprite(300, 400, 'loadingbar');
+        this.preloadBar.x = this.world.centerX - (this.preloadBar.width / 2);
+        this.game.load.setPreloadSprite(this.preloadBar);
         // load all game assets
         game.load.tilemap('level1', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.tilemap('level2', 'assets/levels/level2.json', null, Phaser.Tilemap.TILED_JSON);

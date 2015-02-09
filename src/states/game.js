@@ -36,7 +36,7 @@ module.exports = {
         if (game.currentLevel === 1) {
             console.log('loading level 1');
             // add background image
-            this.bg = game.add.sprite(0, 0, 'background-castle');
+            this.bg = game.add.sprite(0, 0, 'background');
             this.bg.width = game.world.width;
             this.bg.height = game.world.width;
 
@@ -47,7 +47,7 @@ module.exports = {
         else if (game.currentLevel === 2) {
             console.log('loading level 2');
 
-            this.bg = game.add.sprite(0, 0, 'background-castle');
+            this.bg = game.add.sprite(0, 0, 'background');
             this.bg.width = game.world.width;
             this.bg.height = game.world.width;
 
@@ -57,7 +57,9 @@ module.exports = {
         else if (game.currentLevel === 3) {
             console.log('loading level 3');
 
-            game.add.sprite(0, 0, 'background-castle');
+            this.bg = game.add.sprite(0, 0, 'background-castle');
+            this.bg.width = game.world.width;
+            this.bg.height = game.world.width;
 
             this.map = game.add.tilemap('level3');
             this.map.addTilesetImage('Tileset');
@@ -75,7 +77,7 @@ module.exports = {
         this.map.setTileIndexCallback(137, this.completeLevel, this);
 
         // create some UI elements
-        this.timerText = game.add.text(32,
+        this.timerText = game.add.text(58,
                                        32,
                                        'Time: --:--',
                                        { font: "20px Arial",
@@ -132,8 +134,8 @@ module.exports = {
         this.lvlWinText.addColor('red', 13);
 
 
-        this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
-        this.keyUIFull = game.add.image(32, 55, 'Player', 403);
+        this.keyUIEmpty = game.add.image(32, 33, 'Player', 407);
+        this.keyUIFull = game.add.image(32, 33, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
 
         // initialize world physics
