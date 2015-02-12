@@ -6,7 +6,10 @@ module.exports = {
     preload: function () {
         //Load just the essential files for the loading screen,
         //they will be used in the Load State
-        game.load.image('loadingbar', 'assets/images/loadingbar.png');
+        this.game.load.image('loadingbar', 'assets/images/loadingbar.png');
+
+        // game settings
+        this.game.antialias = false;
     },
 
     create: function () {
@@ -14,8 +17,9 @@ module.exports = {
 
         // set initial level to be 1, as this game will always start
         // from the beginning...
-        game.currentLevel = 1;
-        game.timeOverall = 0;
-        game.state.start('load');
+        this.game.currentLevel = 3;
+        this.game.timeOverall = 0;
+        this.game.playerDeaths = 0;
+        this.game.state.start('load');
     }
 };
