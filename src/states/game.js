@@ -55,16 +55,87 @@ module.exports = {
         this.bg.width = this.game.world.width;
         this.bg.height = this.game.world.width;
         this.map.addTilesetImage('Tileset');
-        // set collisions with certain tiles (immovable world tiles)
-        // all tile IDs in the spritesheet are offset by +1 here
-        // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
-        this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 572, 573, 574, 575, 576]);
 
         // create the physical world
         this.platformLayer = this.map.createLayer('Platforms');
         this.platformLayer.resizeWorld();
+        if (this.game.currentLevel === 3) {
+            this.fakePlatformLayer = this.map.createLayer('FakeTiles');
+            this.fakePlatformLayer.resizeWorld();
+        }
+
+        // set collisions with certain tiles (immovable world tiles)
+        // all tile IDs in the spritesheet are offset by +1 here
+        // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
+        this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 572, 573, 574, 575, 576], true, this.platformLayer);
+
         // define some tiles to have certain actions on collision
         this.map.setTileIndexCallback(137, this.completeLevel, this);
+
+
+        // initialize world physics
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.physics.arcade.gravity.y = 300;
+        // the following line populates game.time.fps variables
+        this.game.time.advancedTiming = true; // TODO: put behind debug flag
+
+        // create player 
+        this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
+        // issue with tiled object layers require offsetting all
+        // object tiles by Y-1 units. See
+        // https://github.com/bjorn/tiled/issues/91 for more details
+        this.player = new Player(this.game, this.playerSpawn.x, (this.playerSpawn.y - this.map.tileWidth)); 
+        this.player.events.onKilled.add(this.onDeath, this);
+
+        // create world objects
+        var keys = this.map.objects.Keys;
+        this.levelKey = this.game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
+        this.game.physics.enable(this.levelKey);
+        this.game.physics.enable(this.platformLayer);
+        // spikes from tiles
+        this.topSpikesGroup = this.game.add.group();
+        this.topSpikesGroup.enableBody = true;
+        this.topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        this.bottomSpikesGroup = this.game.add.group();
+        this.bottomSpikesGroup.enableBody = true;
+        this.bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        this.map.createFromTiles([571, 572, 573], null, 'Player', undefined, this.topSpikesGroup, { alpha: 0 }, this.platformLayer);
+        this.map.createFromTiles([574, 575, 576], null, 'Player', undefined, this.bottomSpikesGroup, { alpha: 0 }, this.platformLayer);
+        // need to iterate through each sprite and disable gravity, as well as fix hitbox size
+        for (i = 0; i < this.topSpikesGroup.children.length; i++) {
+            this.topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
+            this.topSpikesGroup.children[i].body.allowGravity = false;
+        }
+        for (i = 0; i < this.bottomSpikesGroup.children.length; i++) {
+            this.bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
+            this.bottomSpikesGroup.children[i].body.allowGravity = false;
+        }
+        // cheap way to have the key a 'physical body' yet not be
+        // affected by gravity.
+        this.levelKey.body.allowGravity = false;
+        // these 2 lines prevent phaser from separating objects when
+        // they collide.  all we want to know is that a collision
+        // happened, we don't want the bodies to react realistically
+        // here
+        this.levelKey.body.customSeparateX = true;
+        this.levelKey.body.customSeparateY = true;
+
+        // create the moving platform from tiled mapdata
+        var platforms = null;
+        if (this.map.objects.Platforms) {
+            platforms = this.map.objects.Platforms;
+        }
+        this.platformsGroup = this.game.add.group();
+        for(i = 0; i < platforms.length; i++) {
+            this.platformsGroup.add(new MovingPlatform(this.game,
+                                                  platforms[i].x,
+                                                  platforms[i].y,
+                                                  platforms[i].properties.startingDir,
+                                                  +platforms[i].properties.speed,
+                                                  +platforms[i].properties.distance
+                                                 )
+                              );
+        }
 
         // create some UI elements
         this.timerText = this.game.add.text(58,
@@ -123,73 +194,9 @@ module.exports = {
         this.lvlWinText.addColor('violet', 12);
         this.lvlWinText.addColor('red', 13);
 
-
         this.keyUIEmpty = this.game.add.image(32, 33, 'Player', 407);
         this.keyUIFull = this.game.add.image(32, 33, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
-
-        // initialize world physics
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.game.physics.arcade.gravity.y = 300;
-        // the following line populates game.time.fps variables
-        this.game.time.advancedTiming = true; // TODO: put behind debug flag
-
-        // create player 
-        this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
-        // issue with tiled object layers require offsetting all
-        // object tiles by Y-1 units. See
-        // https://github.com/bjorn/tiled/issues/91 for more details
-        this.player = new Player(this.game, this.playerSpawn.x, (this.playerSpawn.y - this.map.tileWidth)); 
-        this.player.events.onKilled.add(this.onDeath, this);
-
-        // create world objects
-        var keys = this.map.objects.Keys;
-        this.levelKey = this.game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
-        this.game.physics.enable(this.levelKey);
-        // spikes from tiles
-        this.topSpikesGroup = this.game.add.group();
-        this.topSpikesGroup.enableBody = true;
-        this.topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        this.bottomSpikesGroup = this.game.add.group();
-        this.bottomSpikesGroup.enableBody = true;
-        this.bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        this.map.createFromTiles([571, 572, 573], null, 'Player', undefined, this.topSpikesGroup, { alpha: 0 });
-        this.map.createFromTiles([574, 575, 576], null, 'Player', undefined, this.bottomSpikesGroup, { alpha: 0 });
-        // need to iterate through each sprite and disable gravity, as well as fix hitbox size
-        for (i = 0; i < this.topSpikesGroup.children.length; i++) {
-            this.topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
-            this.topSpikesGroup.children[i].body.allowGravity = false;
-        }
-        for (i = 0; i < this.bottomSpikesGroup.children.length; i++) {
-            this.bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
-            this.bottomSpikesGroup.children[i].body.allowGravity = false;
-        }
-        // cheap way to have the key a 'physical body' yet not be
-        // affected by gravity.
-        this.levelKey.body.allowGravity = false;
-        // these 2 lines prevent phaser from separating objects when
-        // they collide.  all we want to know is that a collision
-        // happened, we don't want the bodies to react realistically
-        // here
-        this.levelKey.body.customSeparateX = true;
-        this.levelKey.body.customSeparateY = true;
-
-        // create the moving platform from tiled mapdata
-        var platforms = null;
-        if (this.map.objects.Platforms) {
-            platforms = this.map.objects.Platforms;
-        }
-        this.platformsGroup = this.game.add.group();
-        for(i = 0; i < platforms.length; i++) {
-            this.platformsGroup.add(new MovingPlatform(this.game,
-                                                  platforms[i].x,
-                                                  platforms[i].y,
-                                                  platforms[i].properties.startingDir,
-                                                  +platforms[i].properties.speed,
-                                                  +platforms[i].properties.distance
-                                                 )
-                              );
-        }
 
         // initialize events handlers
         this.game.onPause.add(this.onPause, this);
