@@ -98,8 +98,8 @@ module.exports = {
         this.bottomSpikesGroup = this.game.add.group();
         this.bottomSpikesGroup.enableBody = true;
         this.bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        this.map.createFromTiles([571, 572, 573], null, 'Player', undefined, this.topSpikesGroup, { alpha: 0 }, this.platformLayer);
-        this.map.createFromTiles([574, 575, 576], null, 'Player', undefined, this.bottomSpikesGroup, { alpha: 0 }, this.platformLayer);
+        this.map.createFromTiles([571, 572, 573], null, 'Player', this.platformLayer, this.topSpikesGroup, { alpha: 0 } );
+        this.map.createFromTiles([574, 575, 576], null, 'Player', this.platformLayer, this.bottomSpikesGroup, { alpha: 0 } );
         // need to iterate through each sprite and disable gravity, as well as fix hitbox size
         for (i = 0; i < this.topSpikesGroup.children.length; i++) {
             this.topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
