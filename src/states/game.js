@@ -67,11 +67,10 @@ module.exports = {
         // set collisions with certain tiles (immovable world tiles)
         // all tile IDs in the spritesheet are offset by +1 here
         // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
-        this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 572, 573, 574, 575, 576], true, this.platformLayer);
+        this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 571, 572, 573, 574, 575, 576], true, this.platformLayer);
 
         // define some tiles to have certain actions on collision
-        this.map.setTileIndexCallback(137, this.completeLevel, this);
-
+        this.map.setTileIndexCallback(137, this.completeLevel, this, this.platformLayer);
 
         // initialize world physics
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
