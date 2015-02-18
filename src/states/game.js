@@ -226,7 +226,7 @@ module.exports = {
     },
     render: function () {
         // DEBUG STUFF - turn off for production
-        this.game.debug.text('fps: ' + this.game.time.fps || '--', 1200, 24);
+        this.game.debug.text('fps: ' + this.game.time.fps || '--', 950, 24);
         //game.debug.body(player); // draw AABB box for player
         //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
@@ -247,12 +247,12 @@ module.exports = {
         this.openDoor();
     },
     openDoor: function () {
-        this.map.replace(167, 137, 0, 0, 50, 34);
-        this.map.replace(168, 138, 0, 0, 50, 34);
+        this.map.replace(167, 137, 0, 0, 50, 34, this.platformLayer);
+        this.map.replace(168, 138, 0, 0, 50, 34, this.platformLayer);
     },
     closeDoor: function () {
-        this.map.replace(137, 167, 0, 0, 50, 34);
-        this.map.replace(138, 168, 0, 0, 50, 34);
+        this.map.replace(137, 167, 0, 0, 50, 34, this.platformLayer);
+        this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
         this.game.input.enabled = false;
