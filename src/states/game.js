@@ -172,13 +172,26 @@ module.exports = {
                                                    'LEVEL COMPLETE!',
                                                    65);
         this.lvlWinSubText = this.game.add.text(0,
-                                                this.game.world.centerY,
+                                                (this.game.world.centerY / 2) + 85,
                                                 'placeholder',
                                                 { font: "45px Arial",
                                                   fill: '#fff',
                                                   align: 'left'});
+
+        this.lvlWinCont = this.game.add.text(0,
+                                             this.game.world.centerY + (this.game.world.centerY / 4),
+                                             'Press C to CONTINUE!',
+                                             {
+                                                 font: '40px Arial',
+                                                 fill: '#000',
+                                                 stroke: '#fff',
+                                                 strokeThickness: 3
+
+                                             });
         
         this.lvlWinText.x = (this.game.world.centerX - (this.lvlWinText.width / 2));
+        this.lvlWinCont.x = (this.game.world.centerX - (this.lvlWinCont.width / 2));
+        this.lvlWinCont.alpha = 0;
         this.lvlWinText.alpha = 0;
         this.lvlWinSubText.alpha = 0;
         this.lvlWinSubText.stroke = '#000';
@@ -193,6 +206,8 @@ module.exports = {
         this.game.onResume.add(this.onResume, this);
         // initialize timer
         this.timeLevelStart = this.game.time.now;
+        this.timeCurrent = 0;
+        this.levelComplete = false;
     },
     handlePlayerMovingPlatformCollision: function (player, platform) {
         if (player.body.touching.down) {
@@ -205,9 +220,8 @@ module.exports = {
             this.updateTimer();
         }
 
-        // check for level complete & accompanying next level request
         if (this.levelComplete) {
-            if (this.game.input.keyboard.isDown(Phaser.Keyboard.C) ) {
+            if (this.game.input.keyboard.isDown( Phaser.Keyboard.C ) ) {
                 this.loadNextLevel();
             }
         }
@@ -252,7 +266,6 @@ module.exports = {
         this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
-     //   this.game.input.enabled = false;
         player.body.enable = false;
         player.animations.stop();
         this.game.timeOverall += this.timeCurrent;
@@ -261,13 +274,11 @@ module.exports = {
         this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
         this.lvlWinText.alpha = 1;
         this.lvlWinSubText.alpha = 1;
+        this.lvlWinCont.alpha = 1;
         this.levelComplete = true;
-       // this.game.time.events.add(Phaser.Timer.SECOND * 3, this.loadNextLevel, this);
     },
     loadNextLevel: function () {
-        console.log(this);
         // re-enable stuff we just disabled
-        this.game.input.enabled = true;
         this.player.body.enable = true;
         // i have no idea why the following variable doesnt reset
         // itself upon loading the new state but it doesnt.. although
