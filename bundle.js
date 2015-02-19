@@ -1,5 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-window.game = new Phaser.Game(1050, 714, Phaser.AUTO);
+var game = new Phaser.Game(1050, 714, Phaser.AUTO);
 
 game.state.add('boot', require('./states/boot.js') );
 game.state.add('load', require('./states/load.js') );
@@ -10,6 +10,12 @@ game.state.start('boot');
 },{"./states/boot.js":4,"./states/game.js":5,"./states/load.js":6,"./states/menu.js":7}],2:[function(require,module,exports){
 var MovingPlatform = function (game, startingX, startingY, direction, speed, distance) {
     Phaser.Sprite.call(this, game, startingX, startingY, 'movingplatform');
+
+    // physics properties
+    game.physics.enable(this);
+    this.body.allowGravity = false;
+    this.body.immovable = true;
+
     // initialize class variables
     this.smoothed = false;
     this.startingX = startingX;
@@ -19,14 +25,18 @@ var MovingPlatform = function (game, startingX, startingY, direction, speed, dis
     this.distance = distance;
     this.destination = { x: 0, y: 0 };
 
-
-    // physics properties
-    game.physics.enable(this);
-    this.body.allowGravity = false;
-
     // decide where the platform will be going
     if (this.direction === 'down') {
         this.destination.y = this.body.y + this.distance;
+    }
+    else if (this.direction === 'up') {
+        this.destination.y = this.body.y - this.distance;
+    }
+    else if (this.direction === 'left') {
+        this.destination.x = this.body.x - this.distance;
+    }
+    else if (this.direction === 'right') {
+        this.destination.x = this.body.x + this.distance;
     }
 
     // add sprite to game stage/world
@@ -37,30 +47,42 @@ MovingPlatform.prototype = Object.create(Phaser.Sprite.prototype);
 MovingPlatform.prototype.constructor = MovingPlatform;
 
 MovingPlatform.prototype.update = function () {
-    var difference = 0;
     if (this.direction === 'down') {
-        if (this.body.y + this.speed < this.destination.y) {
+        if (this.body.y < this.destination.y) {
             this.body.velocity.y = this.speed;
         }
         else {
-            difference = this.destination.y - this.body.y;
-            this.body.velocity.y = difference;
-            this.destination.y = this.body.y - this.distance;
+            this.destination.y -= this.distance;
             this.direction = 'up';
         }
     }
     else if (this.direction === 'up') {
-        if (this.body.y - this.speed > this.destination.y) {
+        if (this.body.y > this.destination.y) {
             this.body.velocity.y = -this.speed;
         }
         else {
-            difference = this.body.y - this.destination.y;
-            this.body.velocity.y = difference;
-            this.destination.y = this.body.y + this.distance;
+            this.destination.y += this.distance;
             this.direction = 'down';
         }
     }
-    // TODO: implement left/right movement support
+    else if (this.direction === 'right') {
+        if (this.body.x < this.destination.x) {
+            this.body.velocity.x = this.speed;
+        }
+        else {
+            this.destination.x -= this.distance;
+            this.direction = 'left';
+        }
+    }
+    else if (this.direction === 'left') {
+        if (this.body.x > this.destination.x) {
+            this.body.velocity.x = -this.speed;
+        }
+        else {
+            this.destination.x += this.distance;
+            this.direction = 'right';
+        }
+    }
 };
 
 module.exports = MovingPlatform;
@@ -75,6 +97,9 @@ var Player = function (game, x, y) {
     this.smoothed = false;
     this.groundSpeed = 150;
     this.maxVelocity = 500;
+    this.speedMultiplier = 2;
+    this.speedEnabled = false;
+    this.autoJumpEnabled = false;
 
     // set animations
     this.animations.add('idle', [19], 10, false);
@@ -82,22 +107,99 @@ var Player = function (game, x, y) {
     this.animations.play('idle');
 
     // physics properties
-    game.physics.enable(this);
+    this.game.physics.enable(this);
     this.anchor.setTo(0.5, 0.5);
     this.body.collideWorldBounds = true;
     this.body.gravity.y = 1250;
     this.body.maxVelocity.y = this.maxVelocity;
     this.body.setSize(12, 20, 0, 1); // set bounding box to be 12x20, starting at (0,1)
 
+    // initialize input (keybpard)
+    this.leftKey = this.game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+    this.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+    this.jumpKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    this.pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.P);
+    this.speedKey = this.game.input.keyboard.addKey(Phaser.Keyboard.Z);
+    this.autoJumpToggleKey = this.game.input.keyboard.addKey(Phaser.Keyboard.F);
+    // callbacks for input that isn't necessary for movement
+    // the 'onDown' signal is only triggered once per key down
+    // TODO: put this behind a dev flag
+    this.autoJumpToggleKey.onDown.add(function (key) {
+        this.autoJumpEnabled = !this.autoJumpEnabled;
+    }, this);
+    this.pauseKey.onDown.add(function (key) {
+        if (this.game.paused) {
+            this.game.paused = false;
+        }
+        else {
+            this.game.paused = true;
+        }
+    }, this);
+
+
     // add sprite to game stage/world
-    game.add.existing(this);
+    this.game.add.existing(this);
 };
 
 Player.prototype = Object.create(Phaser.Sprite.prototype);
 Player.prototype.constructor = Player;
 
 Player.prototype.update = function () {
+    // reset player movement
+    this.body.velocity.x = 0;
+
+    // move left/right
+    if (this.leftKey.isDown) {
+        this.body.velocity.x = -this.groundSpeed;
+
+        if (this.facing != 'left') {
+            this.animations.play('left');
+            this.scale.x *= -1;
+            this.facing = 'left';
+        }
+    }
+    else if (this.rightKey.isDown) {
+        this.body.velocity.x = this.groundSpeed;
+        
+        if (this.facing != 'right') {
+            if (this.facing === 'left') {
+                this.scale.x *= -1;
+            }
+            this.animations.play('left');
+            this.facing = 'right';
+        }
+    }
+    // go idle
+    else {
+        if (this.facing != 'idle') {
+            if (this.facing === 'left') {
+                this.scale.x *= -1;
+            }
+            this.animations.play('idle');
+            this.facing = 'idle';
+        }
+    }
+
+    // use speed key to run!
+    if (this.speedKey.isDown) {
+        this.speedEnabled = true;
+        this.body.velocity.x *= this.speedMultiplier;
+    }
+    else {
+        if (this.speedEnabled) {
+            this.speedEnabled = false;
+        }
+    }
+
+    // jumping
+    if (this.jumpKey.isDown && this.body.onFloor() ||
+        this.autoJumpEnabled && this.body.onFloor()) {
+        /// number achieved via playtesting
+        this.body.velocity.y = -this.body.maxVelocity.y;
+    }
 };
+
+Player.prototype.destroy = function () {};
 
 module.exports = Player;
 
@@ -110,11 +212,21 @@ module.exports = {
     preload: function () {
         //Load just the essential files for the loading screen,
         //they will be used in the Load State
+        this.game.load.image('loadingbar', 'assets/images/loadingbar.png');
+
+        // game settings
+        this.game.antialias = false;
     },
 
     create: function () {
         console.log('create: in boot state');
-        game.state.start('load');
+
+        // set initial level to be 1, as this game will always start
+        // from the beginning...
+        this.game.currentLevel = 1;
+        this.game.timeOverall = 0;
+        this.game.playerDeaths = 0;
+        this.game.state.start('load');
     }
 };
 
@@ -124,119 +236,112 @@ var MovingPlatform = require('../sprites/movingplatform.js');
 
 module.exports = {
     // state variables
-    groundSpeed: 150,
-    speedMultiplier: 2,
-    speedEnabled: false,
-    autoJumpEnabled: false,
+    map: null,
+    player: null,
+    platformLayer: null,
     playerSpawn: null,
-    playerDeaths: 0,
+    levelKey: null,
     levelComplete: false,
     timeCurrent: 0,
-    timeOverall: 0,
     timeLevelStart: 0,
+    
     timerText: null,
     pauseText: null, 
     deathSubText: null,
     deathText: null,
-    deathSubTextTween: null,
-    deathTextTween: null,
-    levelKey: null,
     keyText: null,
+    lvlWinText: null,
+    lvlWinSubText: null,
+
+    deathTextTween: null,
+    deathSubTextTween: null,
+
     keyUIEmpty: null,
     keyUIFull: null,
-    // methods
-    preload: function () {
-        game.load.tilemap('map', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
-        game.load.image('Tileset', 'assets/images/spritesheet.png');
-        game.load.image('background', 'assets/images/bg.png');
-        game.load.image('movingplatform', 'assets/images/movingplatform.png');
-        // spritesheet(key to use, url, tile width, tile height, ???, sheet margin, tile padding)
-        game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
-    },
+    // state methods
     create: function () {
         console.log('create: in game state');
 
-        game.add.sprite(0, 0, 'background');
+        var i; // for later loops... ohhh, function scope!
+        if (this.game.currentLevel === 1) {
+            console.log('loading level 1');
 
-        // add tilemap & associated tilesets
-        map = game.add.tilemap('map');
-        map.addTilesetImage('Tileset');
-        // TODO: better way of setting all of these collisions
-        map.setCollisionBetween(122, 126);
-        map.setCollisionBetween(152, 166);
-        map.setCollisionBetween(362, 365);
-        map.setCollisionBetween(391, 395);
-        platformLayer = map.createLayer('Platforms');
-        platformLayer.resizeWorld();
+            // add background image
+            this.bg = this.game.add.sprite(0, 0, 'background');
+            // add tilemap & associated tilesets
+            this.map = this.game.add.tilemap('level1');
+        }
+        else if (this.game.currentLevel === 2) {
+            console.log('loading level 2');
+
+            this.bg = this.game.add.sprite(0, 0, 'background');
+            this.map = this.game.add.tilemap('level2');
+        }
+        else if (this.game.currentLevel === 3) {
+            console.log('loading level 3');
+
+            this.bg = this.game.add.sprite(0, 0, 'background-castle');
+            this.map = this.game.add.tilemap('level3');
+        }
+
+        // create shared level ccomponents
+        this.bg.width = this.game.world.width;
+        this.bg.height = this.game.world.width;
+        this.map.addTilesetImage('Tileset');
+
+        // create the physical world
+        this.platformLayer = this.map.createLayer('Platforms');
+        this.platformLayer.resizeWorld();
+        if (this.game.currentLevel === 3) {
+            this.fakePlatformLayer = this.map.createLayer('FakeTiles');
+            this.fakePlatformLayer.resizeWorld();
+        }
+
+        // set collisions with certain tiles (immovable world tiles)
+        // all tile IDs in the spritesheet are offset by +1 here
+        // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
+        this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 571, 572, 573, 574, 575, 576], true, this.platformLayer);
+
         // define some tiles to have certain actions on collision
-        map.setTileIndexCallback(138, this.completeLevel, this);
-
-
-        // create some UI elements
-        this.timerText = game.add.text(32,
-                                       32,
-                                       'Time: --:--',
-                                       { font: "20px Arial",
-                                         fill: '#000',
-                                         keys: null,
-                                         align: 'left'});
-        this.deathText = game.add.text(game.world.centerX,
-                                       game.world.centerY - 65,
-                                       'DIED',
-                                       { font: "65px Arial",
-                                         fill: '#000',
-                                         keys: null,
-                                         align: 'center'});
-        this.deathSubText = game.add.text(game.world.centerX,
-                                          game.world.centerY + 10,
-                                          'You died X times.',
-                                          { font: "20px Arial",
-                                            fill: '#000',
-                                            align: 'center'});
-        this.deathText.alpha = 0;
-        this.deathSubText.alpha = 0;
-        this.deathTextTween = game.add.tween(this.deathText).to({alpha: 0}, 1000);
-        this.deathSubTextTween = game.add.tween(this.deathSubText).to({alpha: 0}, 1000);
-        this.keyUIEmpty = game.add.image(32, 55, 'Player', 407);
-        this.keyUIFull = game.add.image(32, 55, 'Player', 403);
-        this.keyUIFull.alpha = 0; // hide this image at first
+        this.map.setTileIndexCallback(137, this.completeLevel, this, this.platformLayer);
+        this.map.setTileIndexCallback(138, this.completeLevel, this, this.platformLayer);
 
         // initialize world physics
-        game.physics.startSystem(Phaser.Physics.ARCADE);
-        game.physics.arcade.gravity.y = 300;
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.physics.arcade.gravity.y = 300;
         // the following line populates game.time.fps variables
-        game.time.advancedTiming = true; // TODO: put behind debug flag
+        this.game.time.advancedTiming = true; // TODO: put behind debug flag
 
         // create player 
-        this.playerSpawn = map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
+        this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
         // issue with tiled object layers require offsetting all
         // object tiles by Y-1 units. See
         // https://github.com/bjorn/tiled/issues/91 for more details
-        player = new Player(game, this.playerSpawn.x, (this.playerSpawn.y - map.tileWidth));
-        // define some player actions, like what happens on death
-        player.events.onKilled.add(this.onDeath, this);
+        this.player = new Player(this.game, this.playerSpawn.x, (this.playerSpawn.y - this.map.tileWidth)); 
+        this.player.events.onKilled.add(this.onDeath, this);
 
         // create world objects
-        var keys = map.objects.Keys;
-        this.levelKey = game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
-        game.physics.enable(this.levelKey);
+        var keys = this.map.objects.Keys;
+        this.levelKey = this.game.add.sprite(keys[0].x, keys[0].y - 21, 'Player', keys[0].gid - 1);
+        this.game.physics.enable(this.levelKey);
+        this.game.physics.enable(this.platformLayer);
         // spikes from tiles
-        topSpikesGroup = game.add.group();
-        topSpikesGroup.enableBody = true;
-        topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        bottomSpikesGroup = game.add.group();
-        bottomSpikesGroup.enableBody = true;
-        bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
-        map.createFromTiles([571, 572, 573], null, 'Player', undefined, topSpikesGroup, { alpha: 0 });
-        map.createFromTiles([574, 575, 576], null, 'Player', undefined, bottomSpikesGroup, { alpha: 0 });
+        this.topSpikesGroup = this.game.add.group();
+        this.topSpikesGroup.enableBody = true;
+        this.topSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        this.bottomSpikesGroup = this.game.add.group();
+        this.bottomSpikesGroup.enableBody = true;
+        this.bottomSpikesGroup.physicsBodyType = Phaser.Physics.ARCADE;
+        this.map.createFromTiles([571, 572, 573], null, 'Player', this.platformLayer, this.topSpikesGroup, { alpha: 0 } );
+        this.map.createFromTiles([574, 575, 576], null, 'Player', this.platformLayer, this.bottomSpikesGroup, { alpha: 0 } );
         // need to iterate through each sprite and disable gravity, as well as fix hitbox size
-        for (var i = 0; i < topSpikesGroup.children.length; i++) {
-            topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
-            topSpikesGroup.children[i].body.allowGravity = false;
+        for (i = 0; i < this.topSpikesGroup.children.length; i++) {
+            this.topSpikesGroup.children[i].body.setSize(21, 11, 0, 0);
+            this.topSpikesGroup.children[i].body.allowGravity = false;
         }
-        for (var i = 0; i < bottomSpikesGroup.children.length; i++) {
-            bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
-            bottomSpikesGroup.children[i].body.allowGravity = false;
+        for (i = 0; i < this.bottomSpikesGroup.children.length; i++) {
+            this.bottomSpikesGroup.children[i].body.setSize(21, 11, 0, 10);
+            this.bottomSpikesGroup.children[i].body.allowGravity = false;
         }
         // cheap way to have the key a 'physical body' yet not be
         // affected by gravity.
@@ -248,44 +353,94 @@ module.exports = {
         this.levelKey.body.customSeparateX = true;
         this.levelKey.body.customSeparateY = true;
 
-        // create the moving platform using bmd
-        movingPlatform = new MovingPlatform(game, 33 * 21, 20 * 21, 'down', 50, 200);
+        // create the moving platform from tiled mapdata
+        var platforms = null;
+        if (this.map.objects.Platforms) {
+            platforms = this.map.objects.Platforms;
+        }
+        this.platformsGroup = this.game.add.group();
+        for(i = 0; i < platforms.length; i++) {
+            this.platformsGroup.add(new MovingPlatform(this.game,
+                                                  platforms[i].x,
+                                                  platforms[i].y,
+                                                  platforms[i].properties.startingDir,
+                                                  +platforms[i].properties.speed,
+                                                  +platforms[i].properties.distance
+                                                 )
+                              );
+        }
 
-        // initializ input references
-        upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
-        downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
-        leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
-        rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
-        jumpKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-        pauseKey = game.input.keyboard.addKey(Phaser.Keyboard.P);
-        speedKey = game.input.keyboard.addKey(Phaser.Keyboard.Z);
-        autoJumpToggleKey = game.input.keyboard.addKey(Phaser.Keyboard.F);
-        // prevent pausing from resetting the input states
-        Phaser.Input.resetLocked = true; // TODO: not working???
-        // callbacks for input that isn't necessary for movement
-        // the 'onDown' signal is only triggered once per key down
-        // TODO: put this behind a dev flag
-        autoJumpToggleKey.onDown.add(function (key) {
-            this.autoJumpEnabled = !this.autoJumpEnabled;
-        }, this);
-        pauseKey.onDown.add(function (key) {
-            if (game.paused) {
-                this.pauseText.destroy();
-                game.paused = false;
-            }
-            else {
-                game.paused = true;
-                this.pauseText = game.add.text(game.world.centerX,
-                                    game.world.centerY,
-                                    'PAUSED',
-                                    { font: "65px Arial",
-                                      fill: '#000',
-                                      align: 'center'});
-            }
-        }, this);
+        // create some UI elements
+        this.timerText = this.game.add.bitmapText(58,
+                                                  32,
+                                                  'font',
+                                                  'Time: --:--',
+                                                  18);
+        this.pauseText = this.game.add.bitmapText(0,
+                                                  this.game.world.centerY,
+                                                  'font',
+                                                  'PAUSED',
+                                                  65);
+        this.pauseText.x = this.game.world.centerX - (this.pauseText.width / 2);
+        this.pauseText.alpha = 0;
+        this.deathText = this.game.add.bitmapText(0,
+                                            this.game.world.centerY - 65,
+                                            'font',
+                                            'DIED',
+                                            65);
+        this.deathText.alpha = 0;
+        this.deathText.x = this.game.world.centerX - (this.deathText.width / 2);
+        this.deathSubText = this.game.add.text(0,
+                                               this.game.world.centerY + 10,
+                                               'You died X times.',
+                                               { font: "20px Arial",
+                                                 fill: '#fff',
+                                                 align: 'center'});
+        this.deathSubText.alpha = 0;
+        this.deathSubText.stroke = '#000';
+        this.deathSubText.strokeThickness = 6;
+        this.lvlWinText = this.game.add.bitmapText(0,
+                                                   this.game.world.centerY / 2,
+                                                   'font',
+                                                   'LEVEL COMPLETE!',
+                                                   65);
+        this.lvlWinSubText = this.game.add.text(0,
+                                                (this.game.world.centerY / 2) + 85,
+                                                'placeholder',
+                                                { font: "45px Arial",
+                                                  fill: '#fff',
+                                                  align: 'left'});
+
+        this.lvlWinCont = this.game.add.text(0,
+                                             this.game.world.centerY + (this.game.world.centerY / 4),
+                                             'Press C to CONTINUE!',
+                                             {
+                                                 font: '40px Arial',
+                                                 fill: '#000',
+                                                 stroke: '#fff',
+                                                 strokeThickness: 3
+
+                                             });
         
+        this.lvlWinText.x = (this.game.world.centerX - (this.lvlWinText.width / 2));
+        this.lvlWinCont.x = (this.game.world.centerX - (this.lvlWinCont.width / 2));
+        this.lvlWinCont.alpha = 0;
+        this.lvlWinText.alpha = 0;
+        this.lvlWinSubText.alpha = 0;
+        this.lvlWinSubText.stroke = '#000';
+        this.lvlWinSubText.strokeThickness = 6;
+
+        this.keyUIEmpty = this.game.add.image(32, 33, 'Player', 407);
+        this.keyUIFull = this.game.add.image(32, 33, 'Player', 403);
+        this.keyUIFull.alpha = 0; // hide this image at first
+
+        // initialize events handlers
+        this.game.onPause.add(this.onPause, this);
+        this.game.onResume.add(this.onResume, this);
         // initialize timer
-        this.timeLevelStart = game.time.now;
+        this.timeLevelStart = this.game.time.now;
+        this.timeCurrent = 0;
+        this.levelComplete = false;
     },
     handlePlayerMovingPlatformCollision: function (player, platform) {
         if (player.body.touching.down) {
@@ -294,83 +449,35 @@ module.exports = {
     },
     update: function () {
         // update ui timer while the level is incomplete
-        if (!this.levelComplete) {
+        if (!this.levelComplete && !this.game.paused) {
             this.updateTimer();
         }
 
+        if (this.levelComplete) {
+            if (this.game.input.keyboard.isDown( Phaser.Keyboard.C ) ) {
+                this.loadNextLevel();
+            }
+        }
+
         // check for collisions
-        game.physics.arcade.collide(player, platformLayer);
-        game.physics.arcade.collide(player, movingPlatform, this.handlePlayerMovingPlatformCollision, null, this);
+        this.game.physics.arcade.collide(this.player, this.platformLayer);
+        this.game.physics.arcade.collide(this.player, this.platformsGroup, this.handlePlayerMovingPlatformCollision, null, this);
 
-        game.physics.arcade.collide(player, this.levelKey, this.collectKey, null, this);
-        if (game.physics.arcade.overlap(player, bottomSpikesGroup) || game.physics.arcade.overlap(player, topSpikesGroup)) {
-            this.killPlayer(player);
-        }
-
-        // reset player movement
-        player.body.velocity.x = 0;
-
-        // move left/right
-        if (leftKey.isDown) {
-            player.body.velocity.x = -this.groundSpeed;
-
-            if (this.facing != 'left') {
-                player.animations.play('left');
-                player.scale.x *= -1;
-                this.facing = 'left';
-            }
-        }
-        else if (rightKey.isDown) {
-            player.body.velocity.x = this.groundSpeed;
-
-            // TODO: get animation frames for 'right'
-            if (this.facing != 'right') {
-                if (this.facing === 'left') {
-                    player.scale.x *= -1;
-                }
-                player.animations.play('left');
-                this.facing = 'right';
-            }
-        }
-        else {
-            if (this.facing != 'idle') {
-                if (this.facing === 'left') {
-                    player.scale.x *= -1;
-                }
-                player.animations.play('idle');
-                this.facing = 'idle';
-            }
-        }
-
-        // use speed key to run!
-        if (speedKey.isDown) {
-            this.speedEnabled = true;
-            player.body.velocity.x *= this.speedMultiplier;
-        }
-        else {
-            if (this.speedEnabled) {
-                this.speedEnabled = false;
-            }
-        }
-
-        // jumping
-        if (jumpKey.isDown && player.body.onFloor() ||
-            this.autoJumpEnabled && player.body.onFloor()) {
-            /// number achieved via playtesting
-            player.body.velocity.y = -player.body.maxVelocity.y;
+        this.game.physics.arcade.collide(this.player, this.levelKey, this.collectKey, null, this);
+        if (this.game.physics.arcade.overlap(this.player, this.bottomSpikesGroup) || this.game.physics.arcade.overlap(this.player, this.topSpikesGroup)) {
+            this.killPlayer(this.player);
         }
     },
     render: function () {
         // DEBUG STUFF - turn off for production
-        game.debug.text('fps: ' + game.time.fps || '--', 1200, 24);
+        this.game.debug.text('fps: ' + this.game.time.fps || '--', 950, 24);
         //game.debug.body(player); // draw AABB box for player
         //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
     },
     updateTimer: function () {
-        this.timeCurrent = (game.time.now - this.timeLevelStart) / 1000;
+        this.timeCurrent += this.game.time.physicsElapsed;
         this.timerText.setText('Time: ' + this.timeCurrent.toFixed(2));
-        
     },
     killPlayer: function (player, spikesLayer) {
         if (player.alive) {
@@ -384,32 +491,59 @@ module.exports = {
         this.openDoor();
     },
     openDoor: function () {
-        map.replace(167, 137, 0, 0, 50, 34);
-        map.replace(168, 138, 0, 0, 50, 34);
+        this.map.replace(167, 137, 0, 0, 50, 34, this.platformLayer);
+        this.map.replace(168, 138, 0, 0, 50, 34, this.platformLayer);
     },
     closeDoor: function () {
-        map.replace(137, 167, 0, 0, 50, 34);
-        map.replace(138, 168, 0, 0, 50, 34);
+        this.map.replace(137, 167, 0, 0, 50, 34, this.platformLayer);
+        this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
+        player.body.enable = false;
+        player.animations.stop();
+        this.game.timeOverall += this.timeCurrent;
+        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.game.timeOverall.toFixed(2) + ' seconds');
+        // reset text x since content has been changed
+        this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
+        this.lvlWinText.alpha = 1;
+        this.lvlWinSubText.alpha = 1;
+        this.lvlWinCont.alpha = 1;
         this.levelComplete = true;
-        this.timeOverall += this.timeCurrent;
-        player.body.moves = false;
-        game.input.enabled = false;
-        // TODO: play little animation:
+    },
+    loadNextLevel: function () {
+        // re-enable stuff we just disabled
+        this.player.body.enable = true;
+        // i have no idea why the following variable doesnt reset
+        // itself upon loading the new state but it doesnt.. although
+        // most other things seem to... perhaps the world is not being
+        // destroyed properly. TODO: look into this.
+        this.levelComplete = false;
+        // increment level counter
+        this.game.currentLevel++;
+        // reset level timer
+        this.timeCurrent = 0;
+        // TODO: if level === 6, load end screen. otheriwse, increment
+        // and load next level
+        this.game.state.start('game', true, false, this.player);
     },
     onDeath: function (player) {
-        this.playerDeaths += 1;
-        this.showDeathText();
+        this.game.playerDeaths += 1;
+        this.showDeathText(this.game.playerDeaths);
         this.resetLevel();
         this.respawnPlayer(player);
     },
-    showDeathText: function () {
-        this.deathSubText.setText('You died ' + this.playerDeaths + ((this.playerDeaths === 1) ? ' time.' : ' times.'));
+    showDeathText: function (deathCount) {
+        if (this.deathTextTween &&
+            this.deathTextTween.isRunning) {
+            this.deathTextTween.stop();
+            this.deathSubTextTween.stop();
+        }
+        this.deathSubText.setText('You died ' + deathCount + ((deathCount === 1) ? ' time.' : ' times.'));
+        this.deathSubText.x = this.game.world.centerX - (this.deathSubText.width / 2);
         this.deathText.alpha = 1;
         this.deathSubText.alpha = 1;
-        this.deathTextTween.start();
-        this.deathSubTextTween.start();
+        this.deathTextTween = this.game.add.tween(this.deathText).to({alpha: 0}, 1000).start();
+        this.deathSubTextTween = this.game.add.tween(this.deathSubText).to({alpha: 0}, 1000).start();
     },
     resetLevel: function () {
         this.closeDoor();
@@ -419,28 +553,69 @@ module.exports = {
     },
     respawnPlayer: function (player) {
         player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
+    },
+    onPause: function () {
+        this.pauseText.alpha = 1;
+    },
+    onResume: function () {
+        this.pauseText.alpha = 0;
     }
 };
 
 },{"../sprites/movingplatform.js":2,"../sprites/player.js":3}],6:[function(require,module,exports){
 module.exports = {
     preload: function () {
-        
+        // create preload bar
+        this.preloadBar = this.add.sprite(300, 400, 'loadingbar');
+        this.preloadBar.x = this.world.centerX - (this.preloadBar.width / 2);
+        this.game.load.setPreloadSprite(this.preloadBar);
+        // load all game assets
+        this.game.load.tilemap('level1', 'assets/levels/level1.json', null, Phaser.Tilemap.TILED_JSON);
+        this.game.load.tilemap('level2', 'assets/levels/level2.json', null, Phaser.Tilemap.TILED_JSON);
+        this.game.load.tilemap('level3', 'assets/levels/level3.json', null, Phaser.Tilemap.TILED_JSON);
+        this.game.load.image('Tileset', 'assets/images/spritesheet.png');
+        this.game.load.image('background', 'assets/images/bg.png');
+        this.game.load.image('background-castle', 'assets/images/bg_castle.png');
+        this.game.load.image('movingplatform', 'assets/images/movingplatform.png');
+        this.game.load.image('start_btn', 'assets/images/start_btn.png');
+        this.game.load.image('arrow', 'assets/images/arrow.png');
+        this.game.load.image('author', 'assets/images/author.png');
+        this.game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
+        this.game.load.bitmapFont('font', 'assets/fonts/font.png', 'assets/fonts/font.fnt');
     },
     create: function () {
         console.log('create: in load state');
-        game.state.start('menu');
+        this.game.state.start('menu');
     }
 };
 
 },{}],7:[function(require,module,exports){
 module.exports = {
-    preload: function () {
-        
-    },
     create: function () {
         console.log('create: in menu state');
-        game.state.start('game');
+        this.titleText = this.game.add.bitmapText(23, 23, 'font', 'JUMP AROUND', 72);
+        this.titleText.x = this.game.world.centerX - (this.titleText.width / 2);
+
+        this.startButton = this.game.add.button(0, 300, 'start_btn', this.startGame, this);
+        this.startButton.x = this.game.world.centerX - (this.startButton.width / 2);
+
+        this.authorText = this.game.add.button(23, this.game.world.height - 23 - 18, 'author', this.openTwitter, this);
+    },
+    update: function() {
+        if ( this.game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) ) {
+            this.startGame();
+        }
+    },
+    startGame: function() {
+        this.game.state.start('game');
+    },
+    moveArrowToButton: function(button) {
+        // instant movement of arrow
+        this.selectionArrow.x = button.x - 56 - 20;
+        this.selectionArrow.y = button.y;
+    },
+    openTwitter: function() {
+        window.open('https://twitter.com/hollow_fish');
     }
 };
 
