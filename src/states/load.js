@@ -12,7 +12,11 @@ module.exports = {
         this.game.load.image('background', 'assets/images/bg.png');
         this.game.load.image('background-castle', 'assets/images/bg_castle.png');
         this.game.load.image('movingplatform', 'assets/images/movingplatform.png');
+        this.game.load.image('start_btn', 'assets/images/start_btn.png');
+        this.game.load.image('arrow', 'assets/images/arrow.png');
+        this.game.load.image('author', 'assets/images/author.png');
         this.game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
+        this.game.load.bitmapFont('font', 'assets/fonts/font.png', 'assets/fonts/font.fnt');
     },
     create: function () {
         console.log('create: in load state');

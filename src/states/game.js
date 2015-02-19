@@ -71,6 +71,7 @@ module.exports = {
 
         // define some tiles to have certain actions on collision
         this.map.setTileIndexCallback(137, this.completeLevel, this, this.platformLayer);
+        this.map.setTileIndexCallback(138, this.completeLevel, this, this.platformLayer);
 
         // initialize world physics
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -137,61 +138,51 @@ module.exports = {
         }
 
         // create some UI elements
-        this.timerText = this.game.add.text(58,
-                                            32,
-                                            'Time: --:--',
-                                            { font: "20px Arial",
-                                              fill: '#000',
-                                              keys: null,
-                                              align: 'left'});
-        this.pauseText = this.game.add.text(0,
-                                            this.game.world.centerY,
-                                            'PAUSED',
-                                            { font: "65px Arial",
-                                              fill: '#000',
-                                              align: 'center'});
+        this.timerText = this.game.add.bitmapText(58,
+                                                  32,
+                                                  'font',
+                                                  'Time: --:--',
+                                                  18);
+        this.pauseText = this.game.add.bitmapText(0,
+                                                  this.game.world.centerY,
+                                                  'font',
+                                                  'PAUSED',
+                                                  65);
         this.pauseText.x = this.game.world.centerX - (this.pauseText.width / 2);
         this.pauseText.alpha = 0;
-        this.deathText = this.game.add.text(0,
+        this.deathText = this.game.add.bitmapText(0,
                                             this.game.world.centerY - 65,
+                                            'font',
                                             'DIED',
-                                            { font: "65px Arial",
-                                              fill: '#000',
-                                              keys: null,
-                                              align: 'center'});
+                                            65);
         this.deathText.alpha = 0;
         this.deathText.x = this.game.world.centerX - (this.deathText.width / 2);
         this.deathSubText = this.game.add.text(0,
                                                this.game.world.centerY + 10,
                                                'You died X times.',
                                                { font: "20px Arial",
-                                                 fill: '#000',
+                                                 fill: '#fff',
                                                  align: 'center'});
         this.deathSubText.alpha = 0;
-        this.lvlWinText = this.game.add.text(0,
-                                             this.game.world.centerY / 2,
-                                             'LEVEL COMPLETE!',
-                                             { font: "65px Arial",
-                                               fill: '#000',
-                                               align: 'center'});
+        this.deathSubText.stroke = '#000';
+        this.deathSubText.strokeThickness = 6;
+        this.lvlWinText = this.game.add.bitmapText(0,
+                                                   this.game.world.centerY / 2,
+                                                   'font',
+                                                   'LEVEL COMPLETE!',
+                                                   65);
         this.lvlWinSubText = this.game.add.text(0,
                                                 this.game.world.centerY,
                                                 'placeholder',
                                                 { font: "45px Arial",
-                                                  fill: '#000',
+                                                  fill: '#fff',
                                                   align: 'left'});
         
         this.lvlWinText.x = (this.game.world.centerX - (this.lvlWinText.width / 2));
         this.lvlWinText.alpha = 0;
         this.lvlWinSubText.alpha = 0;
-        this.lvlWinText.addColor('red', 6);
-        this.lvlWinText.addColor('orange', 7);
-        this.lvlWinText.addColor('yellow', 8);
-        this.lvlWinText.addColor('green', 9);
-        this.lvlWinText.addColor('blue', 10);
-        this.lvlWinText.addColor('indigo', 11);
-        this.lvlWinText.addColor('violet', 12);
-        this.lvlWinText.addColor('red', 13);
+        this.lvlWinSubText.stroke = '#000';
+        this.lvlWinSubText.strokeThickness = 6;
 
         this.keyUIEmpty = this.game.add.image(32, 33, 'Player', 407);
         this.keyUIFull = this.game.add.image(32, 33, 'Player', 403);
@@ -212,6 +203,13 @@ module.exports = {
         // update ui timer while the level is incomplete
         if (!this.levelComplete && !this.game.paused) {
             this.updateTimer();
+        }
+
+        // check for level complete & accompanying next level request
+        if (this.levelComplete) {
+            if (this.game.input.keyboard.isDown(Phaser.Keyboard.C) ) {
+                this.loadNextLevel();
+            }
         }
 
         // check for collisions
@@ -254,7 +252,7 @@ module.exports = {
         this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
-        this.game.input.enabled = false;
+     //   this.game.input.enabled = false;
         player.body.enable = false;
         player.animations.stop();
         this.game.timeOverall += this.timeCurrent;
@@ -264,9 +262,10 @@ module.exports = {
         this.lvlWinText.alpha = 1;
         this.lvlWinSubText.alpha = 1;
         this.levelComplete = true;
-        this.game.time.events.add(Phaser.Timer.SECOND * 3, this.loadNextLevel, this);
+       // this.game.time.events.add(Phaser.Timer.SECOND * 3, this.loadNextLevel, this);
     },
     loadNextLevel: function () {
+        console.log(this);
         // re-enable stuff we just disabled
         this.game.input.enabled = true;
         this.player.body.enable = true;

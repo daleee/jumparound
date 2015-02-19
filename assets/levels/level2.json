@@ -79,15 +79,15 @@
                  "name":"1",
                  "properties":
                     {
-                     "distance":"756",
-                     "speed":"200",
+                     "distance":"882",
+                     "speed":"240",
                      "startingDir":"left"
                     },
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":945,
+                 "x":966,
                  "y":210
                 }, 
                 {

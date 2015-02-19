@@ -17,7 +17,7 @@ module.exports = {
 
         // set initial level to be 1, as this game will always start
         // from the beginning...
-        this.game.currentLevel = 3;
+        this.game.currentLevel = 1;
         this.game.timeOverall = 0;
         this.game.playerDeaths = 0;
         this.game.state.start('load');

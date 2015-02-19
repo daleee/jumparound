@@ -15,10 +15,10 @@
   <object id="2" name="Key" gid="404" x="483" y="504"/>
  </objectgroup>
  <objectgroup name="Platforms">
-  <object id="3" name="1" gid="435" x="945" y="210">
+  <object id="3" name="1" gid="435" x="966" y="210">
    <properties>
-    <property name="distance" value="756"/>
-    <property name="speed" value="200"/>
+    <property name="distance" value="882"/>
+    <property name="speed" value="240"/>
     <property name="startingDir" value="left"/>
    </properties>
   </object>
