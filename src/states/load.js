@@ -16,6 +16,7 @@ module.exports = {
         this.game.load.image('arrow', 'assets/images/arrow.png');
         this.game.load.image('author', 'assets/images/author.png');
         this.game.load.image('menu_platform', 'assets/images/menu_platform.png');
+        this.game.load.image('menu_door', 'assets/images/menu_door.png');
         this.game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
         this.game.load.bitmapFont('font', 'assets/fonts/font.png', 'assets/fonts/font.fnt');
     },
