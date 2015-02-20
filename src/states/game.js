@@ -260,11 +260,14 @@ module.exports = {
         }
     },
     collectKey: function (player, key) {
-        key.alpha = 0;
-        key.body.enabled = false;
-        this.keyUIFull.alpha = 1; // display keyUIFull in UI
-        this.audioKeyGet.play();
-        this.openDoor();
+        if (!this.keyCollected) {
+            this.keyCollected = true;
+            key.alpha = 0;
+            key.body.enabled = false;
+            this.keyUIFull.alpha = 1; // display keyUIFull in UI
+            this.audioKeyGet.play();
+            this.openDoor();
+        }
     },
     openDoor: function () {
         this.map.replace(167, 137, 0, 0, 50, 34, this.platformLayer);
@@ -327,6 +330,7 @@ module.exports = {
     resetLevel: function () {
         this.closeDoor();
         this.keyUIFull.alpha = 0;
+        this.keyCollected = false;
         this.levelKey.body.enabled = true;
         this.levelKey.alpha = 1;
     },
