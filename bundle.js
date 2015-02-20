@@ -5,9 +5,10 @@ game.state.add('boot', require('./states/boot.js') );
 game.state.add('load', require('./states/load.js') );
 game.state.add('menu', require('./states/menu.js') );
 game.state.add('game', require('./states/game.js') );
+game.state.add('end', require('./states/end.js') );
 game.state.start('boot');
 
-},{"./states/boot.js":4,"./states/game.js":5,"./states/load.js":6,"./states/menu.js":7}],2:[function(require,module,exports){
+},{"./states/boot.js":4,"./states/end.js":5,"./states/game.js":6,"./states/load.js":7,"./states/menu.js":8}],2:[function(require,module,exports){
 var MovingPlatform = function (game, startingX, startingY, direction, speed, distance) {
     Phaser.Sprite.call(this, game, startingX, startingY, 'movingplatform');
 
@@ -231,6 +232,62 @@ module.exports = {
 };
 
 },{}],5:[function(require,module,exports){
+module.exports = {
+    create: function () {
+        console.log('create: in end state');
+        var endGameText = 'CONGRATULATIONS!\n' +
+                'ALL OF THAT JUMPING\n' +
+                'AROUND HAS HELPED YOU GET HOME.\n' +
+                'YOUR JOURNEY IS NOW OVER.\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '...NO REALLY, IT\'S OVER.\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                '\n' +
+                'THIS ISN\'T SOME MARVEL MOVIE\nWITH 3 STINGERS,' +
+                'YOU CAN\nCLOSE THE BROWSER NOW IF YOU \nWANT OR HIT "C" TO RETURN TO \nTHE MENU.\n';
+
+        this.endTextObj = this.game.add.bitmapText(20, this.game.world.height, 'font', endGameText, 32);
+        this.endTextTween = this.game.add.tween(this.endTextObj).to({y: -1000}, 40000, Phaser.Easing.Linear.None, true);
+    },
+    update: function() {
+        if ( this.game.input.keyboard.isDown(Phaser.Keyboard.C) ) {
+            this.game.state.start('menu');
+        }
+        
+    }
+
+};
+
+},{}],6:[function(require,module,exports){
 var Player = require('../sprites/player.js');
 var MovingPlatform = require('../sprites/movingplatform.js');
 
@@ -297,20 +354,22 @@ module.exports = {
             this.fakePlatformLayer.resizeWorld();
         }
 
+        // initialize world physics
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.physics.arcade.gravity.y = 300;
+        // the following line populates game.time.fps variables
+        this.game.time.advancedTiming = true; // TODO: put behind debug flag
+
         // set collisions with certain tiles (immovable world tiles)
         // all tile IDs in the spritesheet are offset by +1 here
         // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
         this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 571, 572, 573, 574, 575, 576], true, this.platformLayer);
 
         // define some tiles to have certain actions on collision
+        this.endFired = false;
         this.map.setTileIndexCallback(137, this.completeLevel, this, this.platformLayer);
         this.map.setTileIndexCallback(138, this.completeLevel, this, this.platformLayer);
 
-        // initialize world physics
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.game.physics.arcade.gravity.y = 300;
-        // the following line populates game.time.fps variables
-        this.game.time.advancedTiming = true; // TODO: put behind debug flag
 
         // create player 
         this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
@@ -434,6 +493,12 @@ module.exports = {
         this.keyUIFull = this.game.add.image(32, 33, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
 
+        // initialize audio sprites
+        this.audioDeath = this.game.add.audio('a_Death');
+        this.audioDeath.allowMultiple = true;
+        this.audioKeyGet = this.game.add.audio('a_KeyGet');
+        this.audioLevelWin = this.game.add.audio('a_LevelWin');
+
         // initialize events handlers
         this.game.onPause.add(this.onPause, this);
         this.game.onResume.add(this.onResume, this);
@@ -485,10 +550,14 @@ module.exports = {
         }
     },
     collectKey: function (player, key) {
-        key.alpha = 0;
-        key.body.enabled = false;
-        this.keyUIFull.alpha = 1; // display keyUIFull in UI
-        this.openDoor();
+        if (!this.keyCollected) {
+            this.keyCollected = true;
+            key.alpha = 0;
+            key.body.enabled = false;
+            this.keyUIFull.alpha = 1; // display keyUIFull in UI
+            this.audioKeyGet.play();
+            this.openDoor();
+        }
     },
     openDoor: function () {
         this.map.replace(167, 137, 0, 0, 50, 34, this.platformLayer);
@@ -499,32 +568,35 @@ module.exports = {
         this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
-        player.body.enable = false;
-        player.animations.stop();
-        this.game.timeOverall += this.timeCurrent;
-        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.game.timeOverall.toFixed(2) + ' seconds');
-        // reset text x since content has been changed
-        this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
-        this.lvlWinText.alpha = 1;
-        this.lvlWinSubText.alpha = 1;
-        this.lvlWinCont.alpha = 1;
-        this.levelComplete = true;
+        if (!this.levelComplete) {
+            this.levelComplete = true;
+            this.audioLevelWin.play();
+            player.body.enable = false;
+            player.animations.stop();
+            this.game.timeOverall += this.timeCurrent;
+            this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.game.timeOverall.toFixed(2) + ' seconds');
+            // reset text x since content has been changed
+            this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
+            this.lvlWinText.alpha = 1;
+            this.lvlWinSubText.alpha = 1;
+            this.lvlWinCont.alpha = 1;
+        }
     },
     loadNextLevel: function () {
         // re-enable stuff we just disabled
         this.player.body.enable = true;
-        // i have no idea why the following variable doesnt reset
-        // itself upon loading the new state but it doesnt.. although
-        // most other things seem to... perhaps the world is not being
-        // destroyed properly. TODO: look into this.
-        this.levelComplete = false;
         // increment level counter
         this.game.currentLevel++;
         // reset level timer
         this.timeCurrent = 0;
         // TODO: if level === 6, load end screen. otheriwse, increment
         // and load next level
-        this.game.state.start('game', true, false, this.player);
+        if (this.game.currentLevel <= 3) {
+            this.game.state.start('game', true, false, this.player);
+        }
+        else { // after level 3, go to endgame state
+            this.game.state.start('end');
+        }
     },
     onDeath: function (player) {
         this.game.playerDeaths += 1;
@@ -548,10 +620,12 @@ module.exports = {
     resetLevel: function () {
         this.closeDoor();
         this.keyUIFull.alpha = 0;
+        this.keyCollected = false;
         this.levelKey.body.enabled = true;
         this.levelKey.alpha = 1;
     },
     respawnPlayer: function (player) {
+        this.audioDeath.play();
         player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
     },
     onPause: function () {
@@ -562,7 +636,7 @@ module.exports = {
     }
 };
 
-},{"../sprites/movingplatform.js":2,"../sprites/player.js":3}],6:[function(require,module,exports){
+},{"../sprites/movingplatform.js":2,"../sprites/player.js":3}],7:[function(require,module,exports){
 module.exports = {
     preload: function () {
         // create preload bar
@@ -580,8 +654,14 @@ module.exports = {
         this.game.load.image('start_btn', 'assets/images/start_btn.png');
         this.game.load.image('arrow', 'assets/images/arrow.png');
         this.game.load.image('author', 'assets/images/author.png');
+        this.game.load.image('menu_platform', 'assets/images/menu_platform.png');
+        this.game.load.image('menu_door', 'assets/images/menu_door.png');
         this.game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
         this.game.load.bitmapFont('font', 'assets/fonts/font.png', 'assets/fonts/font.fnt');
+
+        this.game.load.audio('a_Death', 'assets/audio/death.ogg');
+        this.game.load.audio('a_KeyGet', 'assets/audio/keyget.ogg');
+        this.game.load.audio('a_LevelWin', 'assets/audio/levelwin.ogg');
     },
     create: function () {
         console.log('create: in load state');
@@ -589,17 +669,62 @@ module.exports = {
     }
 };
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
+var Player = require('../sprites/player.js');
+
 module.exports = {
     create: function () {
         console.log('create: in menu state');
         this.titleText = this.game.add.bitmapText(23, 23, 'font', 'JUMP AROUND', 72);
         this.titleText.x = this.game.world.centerX - (this.titleText.width / 2);
 
-        this.startButton = this.game.add.button(0, 300, 'start_btn', this.startGame, this);
-        this.startButton.x = this.game.world.centerX - (this.startButton.width / 2);
+        this.startText = this.game.add.text(0, 120, "PRESS SPACEBAR TO BEGIN", {
+            font: '35px Arial',
+            fill: '#000',
+            stroke: '#fff',
+            strokeThickness: 3,
+            align: 'center'
+        } );
+        this.startText.x = this.game.world.centerX - (this.startText.width / 2);
 
-        this.authorText = this.game.add.button(23, this.game.world.height - 23 - 18, 'author', this.openTwitter, this);
+        var controls = 'how to play:\n' +
+                'arrows keys: move left & right\n' +
+                'z (hold): run\n' +
+                'spacebar: jump\n' +
+                'p: toggle pause';
+        this.howToPlayText = this.game.add.text(0, 450, controls, {
+            font: '30px Arial',
+            fill: '#fff',
+            stroke: '#000',
+            strokeThickness: 1,
+            align: 'center'
+        });
+        this.howToPlayText.x = this.game.world.centerX - (this.howToPlayText.width / 2);
+
+        this.authorText = this.game.add.button(23, this.game.world.height - 23 - 18, 'author', this.openWebpage, this);
+
+        this.door = this.game.add.sprite(this.game.world.centerX - 20, this.game.world.centerY - 60, 'menu_door');
+        this.door.width = 126;
+        this.door.height = 210;
+        this.door.anchor.setTo(0.5, 0.5);
+
+        this.key = this.game.add.sprite(850, 315, 'Player', 403);
+        this.key.width = 63;
+        this.key.height = 63;
+
+        this.leftPlat = this.game.add.sprite(80, 400, 'menu_platform');
+        this.rightPlat = this.game.add.sprite(808, 400, 'menu_platform');
+        this.leftPlat.width = 168;
+        this.rightPlat.width = 168;
+
+        this.player = new Player(this.game, 175, 355);
+        this.player.body.enable = false;
+        this.player.height = 95;
+        this.player.width = 95;
+        console.log(this.key);
+
+        this.keyTween = this.game.add.tween(this.key).to({y: 335}, 1000, Phaser.Easing.Back.InOut, true, 0, -1, true);
+        this.doorRotateTween = this.game.add.tween(this.door).to({angle: 360}, 1000, Phaser.Easing.Linear.None, true, 0, -1);
     },
     update: function() {
         if ( this.game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) ) {
@@ -614,9 +739,9 @@ module.exports = {
         this.selectionArrow.x = button.x - 56 - 20;
         this.selectionArrow.y = button.y;
     },
-    openTwitter: function() {
-        window.open('https://twitter.com/hollow_fish');
+    openWebpage: function() {
+        window.open('http://dale.io');
     }
 };
 
-},{}]},{},[1]);
+},{"../sprites/player.js":3}]},{},[1]);
