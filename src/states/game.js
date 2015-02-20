@@ -64,20 +64,22 @@ module.exports = {
             this.fakePlatformLayer.resizeWorld();
         }
 
+        // initialize world physics
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.physics.arcade.gravity.y = 300;
+        // the following line populates game.time.fps variables
+        this.game.time.advancedTiming = true; // TODO: put behind debug flag
+
         // set collisions with certain tiles (immovable world tiles)
         // all tile IDs in the spritesheet are offset by +1 here
         // exit sign, door closed #1, door closed #2, door open #1, door open #2, various spikes
         this.map.setCollisionByExclusion([254, 167, 168, 137, 138, 571, 572, 573, 574, 575, 576], true, this.platformLayer);
 
         // define some tiles to have certain actions on collision
+        this.endFired = false;
         this.map.setTileIndexCallback(137, this.completeLevel, this, this.platformLayer);
         this.map.setTileIndexCallback(138, this.completeLevel, this, this.platformLayer);
 
-        // initialize world physics
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        this.game.physics.arcade.gravity.y = 300;
-        // the following line populates game.time.fps variables
-        this.game.time.advancedTiming = true; // TODO: put behind debug flag
 
         // create player 
         this.playerSpawn = this.map.objects.Triggers[0]; // TODO: un-hardcore index of player spawn
@@ -201,6 +203,12 @@ module.exports = {
         this.keyUIFull = this.game.add.image(32, 33, 'Player', 403);
         this.keyUIFull.alpha = 0; // hide this image at first
 
+        // initialize audio sprites
+        this.audioDeath = this.game.add.audio('a_Death');
+        this.audioDeath.allowMultiple = true;
+        this.audioKeyGet = this.game.add.audio('a_KeyGet');
+        this.audioLevelWin = this.game.add.audio('a_LevelWin');
+
         // initialize events handlers
         this.game.onPause.add(this.onPause, this);
         this.game.onResume.add(this.onResume, this);
@@ -255,6 +263,7 @@ module.exports = {
         key.alpha = 0;
         key.body.enabled = false;
         this.keyUIFull.alpha = 1; // display keyUIFull in UI
+        this.audioKeyGet.play();
         this.openDoor();
     },
     openDoor: function () {
@@ -266,25 +275,23 @@ module.exports = {
         this.map.replace(138, 168, 0, 0, 50, 34, this.platformLayer);
     },
     completeLevel: function (player, doorExit) {
-        player.body.enable = false;
-        player.animations.stop();
-        this.game.timeOverall += this.timeCurrent;
-        this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.game.timeOverall.toFixed(2) + ' seconds');
-        // reset text x since content has been changed
-        this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
-        this.lvlWinText.alpha = 1;
-        this.lvlWinSubText.alpha = 1;
-        this.lvlWinCont.alpha = 1;
-        this.levelComplete = true;
+        if (!this.levelComplete) {
+            this.levelComplete = true;
+            this.audioLevelWin.play();
+            player.body.enable = false;
+            player.animations.stop();
+            this.game.timeOverall += this.timeCurrent;
+            this.lvlWinSubText.setText('Level time: ' + this.timeCurrent.toFixed(2) + ' seconds\nTotal time: ' + this.game.timeOverall.toFixed(2) + ' seconds');
+            // reset text x since content has been changed
+            this.lvlWinSubText.x = (this.game.world.centerX - (this.lvlWinSubText.width / 2));
+            this.lvlWinText.alpha = 1;
+            this.lvlWinSubText.alpha = 1;
+            this.lvlWinCont.alpha = 1;
+        }
     },
     loadNextLevel: function () {
         // re-enable stuff we just disabled
         this.player.body.enable = true;
-        // i have no idea why the following variable doesnt reset
-        // itself upon loading the new state but it doesnt.. although
-        // most other things seem to... perhaps the world is not being
-        // destroyed properly. TODO: look into this.
-        this.levelComplete = false;
         // increment level counter
         this.game.currentLevel++;
         // reset level timer
@@ -319,6 +326,7 @@ module.exports = {
         this.levelKey.alpha = 1;
     },
     respawnPlayer: function (player) {
+        this.audioDeath.play();
         player.reset(this.playerSpawn.x, (this.playerSpawn.y - 20));
     },
     onPause: function () {
