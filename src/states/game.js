@@ -298,7 +298,12 @@ module.exports = {
         this.timeCurrent = 0;
         // TODO: if level === 6, load end screen. otheriwse, increment
         // and load next level
-        this.game.state.start('game', true, false, this.player);
+        if (this.game.currentLevel <= 3) {
+            this.game.state.start('game', true, false, this.player);
+        }
+        else { // after level 3, go to endgame state
+            this.game.state.start('end');
+        }
     },
     onDeath: function (player) {
         this.game.playerDeaths += 1;
