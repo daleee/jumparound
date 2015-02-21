@@ -2,30 +2,6 @@ var Player = require('../sprites/player.js');
 var MovingPlatform = require('../sprites/movingplatform.js');
 
 module.exports = {
-    // state variables
-    map: null,
-    player: null,
-    platformLayer: null,
-    playerSpawn: null,
-    levelKey: null,
-    levelComplete: false,
-    timeCurrent: 0,
-    timeLevelStart: 0,
-    
-    timerText: null,
-    pauseText: null, 
-    deathSubText: null,
-    deathText: null,
-    keyText: null,
-    lvlWinText: null,
-    lvlWinSubText: null,
-
-    deathTextTween: null,
-    deathSubTextTween: null,
-
-    keyUIEmpty: null,
-    keyUIFull: null,
-    // state methods
     create: function () {
         console.log('create: in game state');
 
@@ -245,7 +221,7 @@ module.exports = {
     },
     render: function () {
         // DEBUG STUFF - turn off for production
-        this.game.debug.text('fps: ' + this.game.time.fps || '--', 950, 24);
+        //this.game.debug.text('fps: ' + this.game.time.fps || '--', 950, 24);
         //game.debug.body(player); // draw AABB box for player
         //game.debug.bodyInfo(player, 16, 24);
         // END DEBUG STUFF
