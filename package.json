@@ -1,18 +1,11 @@
 {
   "name": "jump-around",
   "version": "1.0.0",
-  "description": "",
   "main": "bundle.js",
-  "dependencies": {
-    "browserify": "^9.0.1"
-  },
   "devDependencies": {
     "beefy": "^2.1.3",
     "browserify": "^9.0.1"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+  "author": "Dale Karp <dale@dale.io>",
+  "license": "CC0"
 }
