@@ -17,5 +17,6 @@ detailing some lessons learnt during the development of the game.
 All images (except 'loadingbar.png', 'author.png', and 'arrow.png')
 and all audio (unless otherwise specified) created by
 [Kenney](http://kenney.nl/).
-'levelwin.ogg' created by [Tuudurt](http://www.freesound.org/people/Tuudurt/sounds/258142/).
+'levelwin.ogg' created by
+[Tuudurt](http://www.freesound.org/people/Tuudurt/sounds/258142/).
 
