@@ -19,7 +19,6 @@ module.exports = {
         this.game.load.image('menu_door', 'assets/images/menu_door.png');
         this.game.load.spritesheet('Player', 'assets/images/spritesheet.png', 21, 21, -1, 2, 2);
         this.game.load.bitmapFont('font', 'assets/fonts/font.png', 'assets/fonts/font.fnt');
-
         this.game.load.audio('a_Death', 'assets/audio/death.ogg');
         this.game.load.audio('a_KeyGet', 'assets/audio/keyget.ogg');
         this.game.load.audio('a_LevelWin', 'assets/audio/levelwin.ogg');
