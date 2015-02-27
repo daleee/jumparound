@@ -1,6 +1,7 @@
 # Jump Around
 ## Jump Jump Jump Jump [...]
 ![Screenshot of Jump Around](assets/images/screenshot.png)
+
 Jump Around is a 2D platformer that is simple to control yet
 challenging to master. It was created as a small project to learn
 about using the [Phaser game engine](http://phaser.io/). You can
