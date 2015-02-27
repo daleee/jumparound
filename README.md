@@ -11,7 +11,7 @@ detailing some lessons learnt during the development of the game.
 
 ## How to run locally
 1. Install dependencies with NPM: `cd <cloned repo root> && npm install`
-2. Use `./builder.sh serve` to run a local development environment
+2. Use `./builder.sh serve` to run a local development environment.
    When ready for packaging, run `./builder.sh build`.
    
 ## Credits
